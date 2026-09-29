@@ -9,20 +9,23 @@ export const CourseSection: React.FC = () => {
       <div className="text-center max-w-3xl mx-auto mb-10">
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#EFE7D8] border border-[#DACBB5] text-xs font-bold text-[#574A37] uppercase tracking-wider mb-4">
           <GraduationCap className="w-3.5 h-3.5 text-[#8C6D3F]" />
-          Comprehensive Flagship Course
+          Comprehensive System
         </div>
 
-        {/* The Exact Phrasing Requested by User */}
-        <h2
-          dir="rtl"
-          className="font-cairo text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#24211D] leading-tight tracking-tight mb-6"
-        >
-          حوّل الـAI من مجرد أداة بتستخدمها… لنظام كامل يطوّر طريقة مذاكرتك
+        {/* MEDstudy OS Title as requested */}
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#24211D] leading-tight tracking-tight mb-3 font-sans">
+          MEDstudy OS
         </h2>
 
-        <p className="text-sm sm:text-base text-[#615647] max-w-2xl mx-auto mb-6">
-          A hands-on medical masterclass designed to engineer your study workflow, build customized recall engines, and master clinical prompt engineering from day one.
-        </p>
+        {/* Advice and Dua requested by user */}
+        <div className="font-cairo space-y-2 mb-6 max-w-2xl mx-auto" dir="rtl">
+          <p className="text-base sm:text-lg md:text-xl font-bold text-[#24211D] leading-relaxed">
+            كل يوم اسمع فيديو واحد بس من الكورس، خلال أسبوع الفرق هيبهرك
+          </p>
+          <p className="text-sm sm:text-base font-semibold text-[#8C6D3F]">
+            "ادعي ربنا كتير تطلع بأقصى استفادة من أي حاجة بتتعلمها"
+          </p>
+        </div>
 
         {/* Downward Arrow explicitly requested: "واعمل سهم تحت يشاور للينك تحته" */}
         <div className="flex flex-col items-center justify-center my-4">
@@ -53,7 +56,7 @@ export const CourseSection: React.FC = () => {
                   Official Training Program
                 </span>
                 <span className="text-lg sm:text-xl font-extrabold text-[#24211D] tracking-tight group-hover:text-black transition-colors">
-                  Medical AI Masterclass & Study Operating System
+                  MEDstudy OS
                 </span>
               </div>
             </div>
@@ -64,9 +67,14 @@ export const CourseSection: React.FC = () => {
             </span>
           </div>
 
-          <p className="text-xs sm:text-sm text-[#5C5242] leading-relaxed mb-4">
-            Directly access the full curriculum, ready-made prompt libraries, automation templates, and systematic step-by-step guidance tailored for medical students.
-          </p>
+          <div className="font-cairo text-right mb-4 space-y-1" dir="rtl">
+            <p className="text-xs sm:text-sm text-[#473D2F] font-semibold">
+              كل يوم اسمع فيديو واحد بس من الكورس، خلال أسبوع الفرق هيبهرك.
+            </p>
+            <p className="text-xs text-[#8C6D3F] font-bold">
+              "ادعي ربنا كتير تطلع بأقصى استفادة من أي حاجة بتتعلمها"
+            </p>
+          </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-[#E3D6C1] text-xs font-medium text-[#7D705E]">
             <span className="font-mono text-[#4A3F30] font-semibold">https://abd-elrhman.nzmly.com/</span>

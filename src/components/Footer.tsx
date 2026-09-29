@@ -79,7 +79,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPrivacy }) => {
           <div>
             <div className="flex items-center gap-2 font-bold text-[#24211D] text-sm mb-1">
               <Sparkles className="w-4 h-4 text-[#8C6D3F]" />
-              Abdelrhman Ai
+              Abdelrhman Fawzy
             </div>
             <p className="text-[#736653]">
               Exploring how AI transforms the way medical students learn, work, and create.
@@ -115,7 +115,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPrivacy }) => {
         </div>
 
         <div className="mt-8 text-center text-[11px] text-[#8C7E6A] pt-4 border-t border-[#E5DAC9]">
-          © {new Date().getFullYear()} Abdelrhman Ai. Built for ambitious medical students around the world.
+          © {new Date().getFullYear()} Abdelrhman Fawzy. Built for ambitious medical students around the world.
         </div>
       </div>
     </footer>

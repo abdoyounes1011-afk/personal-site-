@@ -1,6 +1,6 @@
 {
   "name": "Abdelrhman Ai",
-  "description": "A personal portfolio and AI study ecosystem by Abdelrahman for medical students featuring custom Gemini AI Gems, evidence-based study articles, and course guides.",
+  "description": "A personal portfolio and AI study ecosystem by Abdelrahman for medical students featuring custom Gemini AI Gems, study workflows, and course guides.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

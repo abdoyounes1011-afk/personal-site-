@@ -66,8 +66,8 @@ export const VideosSection: React.FC = () => {
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#24211D] tracking-tight max-w-2xl mx-auto leading-snug">
           فيديوهات عملية لتطوير طريقة مذاكرتك بالذكاء الاصطناعي
         </h2>
-        <p className="mt-3 text-sm sm:text-base text-[#6B5F4E] max-w-xl mx-auto">
-          شارك معي رحلة التعلم عبر فيديوهات مركزة تجيب عن تحديات المذاكرة الحقيقية وتطبيقات الـ AI العملية.
+        <p className="mt-3 text-sm sm:text-base text-[#6B5F4E] max-w-xl mx-auto font-cairo" dir="rtl">
+          اختار اللي يناسبك ويارب يكون نافع ليك
         </p>
       </div>
 

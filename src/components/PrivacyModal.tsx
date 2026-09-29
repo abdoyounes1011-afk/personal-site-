@@ -73,13 +73,13 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ initialTab = 'privac
             <div className="space-y-4">
               <div>
                 <h3 className="text-base font-bold text-[#24211D] mb-1">
-                  Privacy Policy for Abdelrhman Ai
+                  Privacy Policy for Abdelrhman Fawzy
                 </h3>
                 <p className="text-[#6F6352] text-xs">Last Updated: September 2026</p>
               </div>
 
               <p>
-                At <strong>Abdelrhman Ai</strong> (Welcome to your smarter way to study), accessible via our website, one of our main priorities is the privacy of our visitors. This Privacy Policy document contains types of information that is collected and recorded by our platform and how we use it, drafted in strict compliance with <strong>Google AdSense</strong> publisher guidelines and global data privacy standards.
+                At <strong>Abdelrhman Fawzy</strong> (Welcome to your smarter way to study), accessible via our website, one of our main priorities is the privacy of our visitors. This Privacy Policy document contains types of information that is collected and recorded by our platform and how we use it, drafted in strict compliance with <strong>Google AdSense</strong> publisher guidelines and global data privacy standards.
               </p>
 
               <div className="p-4 rounded-xl bg-[#F0E6D6] border border-[#DFCBB0] space-y-2">
@@ -105,12 +105,12 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ initialTab = 'privac
 
               <h4 className="font-bold text-[#24211D]">Our Advertising Partners</h4>
               <p>
-                Some of the advertisers on our site may use cookies and web beacons. Our primary advertising partner is <strong>Google AdSense</strong>. Third-party ad servers or ad networks use technologies like cookies, JavaScript, or Web Beacons that are used in their respective advertisements and links that appear on Abdelrhman Ai. They automatically receive your IP address when this occurs.
+                Some of the advertisers on our site may use cookies and web beacons. Our primary advertising partner is <strong>Google AdSense</strong>. Third-party ad servers or ad networks use technologies like cookies, JavaScript, or Web Beacons that are used in their respective advertisements and links that appear on Abdelrhman Fawzy. They automatically receive your IP address when this occurs.
               </p>
 
               <h4 className="font-bold text-[#24211D]">Log Files</h4>
               <p>
-                Abdelrhman Ai follows a standard procedure of using log files. These files log visitors when they visit websites. The information collected by log files includes internet protocol (IP) addresses, browser type, Internet Service Provider (ISP), date and time stamp, referring/exit pages, and possibly the number of clicks. These are not linked to any information that is personally identifiable.
+                Abdelrhman Fawzy follows a standard procedure of using log files. These files log visitors when they visit websites. The information collected by log files includes internet protocol (IP) addresses, browser type, Internet Service Provider (ISP), date and time stamp, referring/exit pages, and possibly the number of clicks. These are not linked to any information that is personally identifiable.
               </p>
 
               <h4 className="font-bold text-[#24211D]">CCPA Privacy Rights & GDPR Data Protection Rights</h4>
@@ -169,7 +169,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ initialTab = 'privac
               </h3>
 
               <p>
-                The materials, AI prompt gems, and study methodologies provided on <strong>Abdelrhman Ai</strong> are intended solely for <strong>educational study assistance, exam revision, and conceptual structuring</strong>.
+                The materials, AI prompt gems, and study methodologies provided on <strong>Abdelrhman Fawzy</strong> are intended solely for <strong>educational study assistance, exam revision, and conceptual structuring</strong>.
               </p>
 
               <h4 className="font-bold text-[#24211D]">Not Clinical or Diagnostic Advice</h4>
@@ -187,7 +187,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ initialTab = 'privac
 
         {/* Modal Footer */}
         <div className="p-4 border-t border-[#E8DFD1] bg-[#F4EFE6] flex items-center justify-between shrink-0 text-xs text-[#786D5D]">
-          <span>Abdelrhman Ai • Compliance & Privacy</span>
+          <span>Abdelrhman Fawzy • Compliance & Privacy</span>
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-[#2D2A26] text-[#FAF7F2] font-semibold hover:bg-black transition-colors"

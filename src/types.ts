@@ -3,6 +3,7 @@ export type HoverTheme = 'yellow' | 'orange' | 'baby-blue';
 export interface GemTool {
   id: string;
   name: string;
+  arabicTitle: string;
   arabicName?: string;
   role: string;
   arabicRole: string;
@@ -11,17 +12,9 @@ export interface GemTool {
   category: 'Comprehension' | 'Notes' | 'Visuals' | 'Video' | 'Clinical' | 'Data';
   badge: string;
   features: string[];
-}
-
-export interface Article {
-  id: string;
-  title: string;
-  englishTitle: string;
-  category: string;
-  readTime: string;
-  excerpt: string;
-  content: string[];
-  summary: string;
+  arabicOverview: string;
+  arabicBreakdown?: string[];
+  whenToUse: string[];
 }
 
 export interface CourseFeedback {
@@ -31,4 +24,15 @@ export interface CourseFeedback {
   text: string;
   avatarBg: string;
   rating: number;
+}
+
+export interface Article {
+  id: string;
+  title: string;
+  arabicTitle: string;
+  category: string;
+  readTime: string;
+  summary: string;
+  content: string[];
+  featured?: boolean;
 }

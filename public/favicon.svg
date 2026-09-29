@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background circle gradient -->
+    <linearGradient id="bgYellow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD043"/>
+      <stop offset="60%" stop-color="#FFBE1A"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+
+    <!-- Clip path to keep inside circular badge -->
+    <clipPath id="circleClip">
+      <circle cx="256" cy="256" r="220"/>
+    </clipPath>
+  </defs>
+
+  <!-- Canvas background transparent or soft -->
+  <circle cx="256" cy="256" r="250" fill="#FAF6EE" />
+
+  <!-- Outer accent arcs matching user's photo -->
+  <!-- Left curved arc -->
+  <path d="M 68 360 A 210 210 0 0 1 112 140" fill="none" stroke="#F5C039" stroke-width="12" stroke-linecap="round"/>
+  <!-- Tick notch on top-left -->
+  <rect x="135" y="108" width="16" height="16" fill="#F5C039" rx="3" transform="rotate(-30 135 108)"/>
+
+  <!-- Right speech bubble triangular tail -->
+  <path d="M 430 230 L 498 256 L 435 295 Z" fill="#FFBE1A"/>
+
+  <!-- Bottom-right accent arc -->
+  <path d="M 370 425 A 210 210 0 0 0 450 355" fill="none" stroke="#E5D6BD" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Main Yellow Circle Badge -->
+  <circle cx="256" cy="256" r="220" fill="url(#bgYellow)"/>
+
+  <!-- Inner clipped area for Abdelrhman's portrait -->
+  <g clip-path="url(#circleClip)">
+    <!-- Shoulders & White T-Shirt matching photo -->
+    <path d="M 120 460 C 130 380 180 345 220 345 L 292 345 C 332 345 382 380 392 460 Z" fill="#FFFFFF"/>
+    <!-- Subtle collar fold shadow -->
+    <path d="M 220 345 C 220 370 292 370 292 345 Z" fill="#F3F4F6" stroke="#E5E7EB" stroke-width="3"/>
+
+    <!-- Neck -->
+    <rect x="226" y="295" width="60" height="70" fill="#E2AB7E" rx="8"/>
+    <!-- Neck shadow -->
+    <path d="M 226 300 Q 256 318 286 300 L 286 320 Q 256 338 226 320 Z" fill="#D39768" opacity="0.6"/>
+
+    <!-- Head / Face -->
+    <path d="M 186 195 C 186 135 326 135 326 195 C 326 270 300 310 256 310 C 212 310 186 270 186 195 Z" fill="#F3BF96"/>
+
+    <!-- Ears -->
+    <ellipse cx="180" cy="215" rx="14" ry="20" fill="#E2AB7E"/>
+    <ellipse cx="332" cy="215" rx="14" ry="20" fill="#E2AB7E"/>
+
+    <!-- Curly dark hair (top volume + side curls) -->
+    <path d="M 175 180 C 170 120 200 80 256 80 C 312 80 342 120 337 180 C 325 168 310 174 295 165 C 275 152 237 152 217 165 C 202 174 187 168 175 180 Z" fill="#1C1817"/>
+    <!-- Individual ringlet curls on top -->
+    <circle cx="210" cy="100" r="18" fill="#1C1817"/>
+    <circle cx="236" cy="90" r="20" fill="#282220"/>
+    <circle cx="266" cy="88" r="21" fill="#1C1817"/>
+    <circle cx="296" cy="94" r="19" fill="#282220"/>
+    <circle cx="320" cy="112" r="18" fill="#1C1817"/>
+    <circle cx="192" cy="116" r="17" fill="#282220"/>
+    <circle cx="180" cy="140" r="15" fill="#1C1817"/>
+    <circle cx="332" cy="140" r="15" fill="#1C1817"/>
+    <circle cx="225" cy="120" r="16" fill="#1C1817"/>
+    <circle cx="285" cy="120" r="16" fill="#1C1817"/>
+    <circle cx="256" cy="110" r="17" fill="#282220"/>
+
+    <!-- Eyebrows -->
+    <path d="M 202 188 Q 220 182 236 190" stroke="#1C1817" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <path d="M 276 190 Q 292 182 310 188" stroke="#1C1817" stroke-width="5" stroke-linecap="round" fill="none"/>
+
+    <!-- Eyes (Friendly, smiling dark eyes) -->
+    <ellipse cx="220" cy="204" rx="8" ry="7" fill="#1C1817"/>
+    <ellipse cx="292" cy="204" rx="8" ry="7" fill="#1C1817"/>
+    <circle cx="222" cy="202" r="2.5" fill="#FFFFFF"/>
+    <circle cx="294" cy="202" r="2.5" fill="#FFFFFF"/>
+
+    <!-- Nose -->
+    <path d="M 256 198 L 250 234 L 262 234" stroke="#D39768" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- Beard & Stubble outline -->
+    <path d="M 190 220 C 190 290 216 312 256 312 C 296 312 322 290 322 220 C 322 260 300 295 256 295 C 212 295 190 260 190 220 Z" fill="#26201E" opacity="0.88"/>
+    
+    <!-- Mustache -->
+    <path d="M 232 248 Q 256 244 280 248 Q 256 254 232 248 Z" fill="#26201E"/>
+
+    <!-- Cheerful Broad White Teeth Smile -->
+    <path d="M 230 252 Q 256 276 282 252 Z" fill="#FFFFFF" stroke="#991B1B" stroke-width="2"/>
+    <!-- Subtle teeth center line -->
+    <line x1="256" y1="254" x2="256" y2="264" stroke="#E5E7EB" stroke-width="1.5"/>
+  </g>
+</svg>

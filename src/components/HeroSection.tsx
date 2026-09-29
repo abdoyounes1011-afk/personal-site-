@@ -1,77 +1,142 @@
 import React from 'react';
-import { ArrowDown, Sparkles, BookOpen, BrainCircuit, Stethoscope, MessageCircle } from 'lucide-react';
+import { Sparkles, ArrowDown, BookOpen, Video, Wrench, GraduationCap } from 'lucide-react';
 
 export const HeroSection: React.FC = () => {
   return (
-    <section id="hero" className="pt-12 pb-16 px-4 sm:px-6 relative overflow-hidden">
+    <section id="hero" className="pt-10 pb-14 px-4 sm:px-6 relative overflow-hidden">
       {/* Subtle warm decorative background blobs */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-80 bg-gradient-to-b from-[#F2EAE0]/80 via-[#F7F2EB]/50 to-transparent -z-10 blur-3xl pointer-events-none" />
 
-      <div className="max-w-4xl mx-auto text-center">
-        {/* Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EFE7D8] border border-[#DACBB5] text-[#5C4F3B] text-xs font-semibold uppercase tracking-wider mb-6 shadow-2xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Abdelrhman Ai • Medical AI & Cognitive Study Ecosystem</span>
+      <div className="max-w-3xl mx-auto font-cairo text-right" dir="rtl">
+        {/* Subtle Greeting Badge */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EFE7D8] border border-[#DACBB5] text-[#5C4F3B] text-xs font-semibold tracking-wide shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Abdelrhman Fawzy • دليل ومساحة المذاكرة الذكية بالذكاء الاصطناعي</span>
+          </div>
         </div>
 
-        {/* Main Required Greeting */}
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#24211D] tracking-tight leading-[1.15] mb-6">
-          welcome to your smarter way to study
-        </h1>
+        {/* Welcome Card Box */}
+        <div className="rounded-3xl bg-[#FBF8F2] border border-[#E3D9C9] p-6 sm:p-9 md:p-10 shadow-2xs">
+          {/* Main Title - Centered with Future Doctors and Welcome Icon */}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#24211D] tracking-tight mb-6 leading-tight text-center flex flex-wrap items-center justify-center gap-3">
+            <span>أهلاً بيكم</span>
+            <span className="relative inline-block text-[#1E40AF] font-bold text-2xl sm:text-3xl md:text-4xl px-1">
+              Future Doctors
+              {/* Blue accent underline lines to highlight and emphasize */}
+              <svg
+                className="absolute -bottom-2.5 left-0 w-full h-3.5 overflow-visible pointer-events-none"
+                viewBox="0 0 170 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 8C45 2.5 125 3 167 7"
+                  stroke="#2563EB"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M14 12C55 7.5 120 8 156 11.5"
+                  stroke="#38BDF8"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+            <span className="text-3xl sm:text-4xl md:text-5xl inline-block animate-bounce">👋</span>
+          </h1>
 
-        {/* Required Subtitle Bio with "I am Abdelrahman," */}
-        <p className="text-lg sm:text-xl text-[#5F5547] leading-relaxed max-w-2xl mx-auto mb-8 font-normal">
-          I am Abdelrahman, medical student, prompt engineer, and content creator — exploring how AI can transform the way we learn, work, and create.
-        </p>
+          {/* Intro Bio */}
+          <p className="text-base sm:text-lg text-[#3E3529] leading-relaxed mb-6 font-medium">
+            أخوكم عبد الرحمن، طالب طب، Prompt Engineer، بشارك معاكم اللي بتعلمه عن المذاكرة والـAI والحاجات اللي بتساعدنا نذاكر بشكل أحسن.
+          </p>
 
-        {/* Roles Badges */}
-        <div className="flex flex-wrap items-center justify-center gap-2.5 mb-10">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#F4EDE2] border border-[#DDD1BE] text-xs font-medium text-[#4C4030]">
-            <Stethoscope className="w-3.5 h-3.5 text-[#8C6D3F]" />
-            Medical Student
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#F4EDE2] border border-[#DDD1BE] text-xs font-medium text-[#4C4030]">
-            <BrainCircuit className="w-3.5 h-3.5 text-[#8C6D3F]" />
-            Prompt Engineer
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#F4EDE2] border border-[#DDD1BE] text-xs font-medium text-[#4C4030]">
-            <BookOpen className="w-3.5 h-3.5 text-[#8C6D3F]" />
-            Content Creator
-          </span>
+          {/* Section: "هتلاقي هنا:" */}
+          <div className="mb-6">
+            <h2 className="text-base sm:text-lg font-bold text-[#24211D] mb-3.5">
+              هتلاقي هنا:
+            </h2>
+
+            <div className="space-y-3 text-sm sm:text-base text-[#473E31]">
+              {/* Item 1: Tools */}
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#F5ECE0]/70 border border-[#EADECF] transition-all hover:bg-[#F5ECE0]">
+                <span className="text-xl shrink-0 mt-0.5">🛠️</span>
+                <div className="leading-relaxed">
+                  <span className="font-bold text-[#24211D]">أدوات</span> تقدر تستخدمها في المذاكرة، من شرح المحاضرات وتحويلها لـHigh-Yield Notes، لحد تحويل الفيديوهات لـQ&A وScripts وحاجات تانية.
+                </div>
+              </div>
+
+              {/* Item 2: Videos */}
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#F5ECE0]/70 border border-[#EADECF] transition-all hover:bg-[#F5ECE0]">
+                <span className="text-xl shrink-0 mt-0.5">🎥</span>
+                <div className="leading-relaxed">
+                  <span className="font-bold text-[#24211D]">فيديوهات</span> عن المذاكرة، الـAI، وتنظيم طريقة مذاكرتك.
+                </div>
+              </div>
+
+              {/* Item 3: Articles */}
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#F5ECE0]/70 border border-[#EADECF] transition-all hover:bg-[#F5ECE0]">
+                <span className="text-xl shrink-0 mt-0.5">📚</span>
+                <div className="leading-relaxed">
+                  <span className="font-bold text-[#24211D]">مقالات</span> لو إنت من الناس اللي بتحب تقرأ وتفهم أكتر.
+                </div>
+              </div>
+
+              {/* Item 4: Platform / Course */}
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#F5ECE0]/70 border border-[#EADECF] transition-all hover:bg-[#F5ECE0]">
+                <span className="text-xl shrink-0 mt-0.5">🤖</span>
+                <div className="leading-relaxed">
+                  <span className="font-bold text-[#24211D]">وكمان هتلاقي المنصة بتاعتنا</span>، لو حابب تتعلم أكتر عن الـAI وإزاي تستخدمه في المذاكرة، وتبني لنفسك نظام يخليك تستفيد منه بجد، مش مجرد تسأله سؤال وتاخد إجابة.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Hope and Wish */}
+          <div className="pt-4 border-t border-[#E8DFCFC0] text-[#3E3529]">
+            <p className="text-sm sm:text-base leading-relaxed font-normal mb-3">
+              أتمنى بجد إن الموقع يكون مفيد ليك، وتستخدم الحاجات اللي فيه بشكل منتظم، والأهم إنها تعمل فرق حقيقي في مذاكرتك وحياتك.
+            </p>
+            <p className="text-base sm:text-lg font-bold text-[#8C6D3F]">
+              ربنا يوفقك
+            </p>
+          </div>
         </div>
 
-        {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-12">
+        {/* Quick Jump Buttons */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
           <a
             href="#gems"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#2D2A26] hover:bg-[#1A1816] text-[#FAF7F2] font-semibold text-sm shadow-sm transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2D2A26] hover:bg-[#1A1816] text-[#FAF7F2] font-semibold text-xs sm:text-sm shadow-xs transition-all hover:scale-[1.02] active:scale-98"
           >
-            <Sparkles className="w-4 h-4 text-[#E6C994]" />
-            Explore 7 AI Study Gems
+            <Wrench className="w-4 h-4 text-[#E6C994]" />
+            <span>تصفح أدوات الـ AI (الجيمز)</span>
+          </a>
+
+          <a
+            href="#articles"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#EFE6D6] hover:bg-[#E5DBC7] text-[#3D3325] font-semibold text-xs sm:text-sm border border-[#DACBB5] transition-all active:scale-98"
+          >
+            <BookOpen className="w-4 h-4 text-[#8C6D3F]" />
+            <span>المقالات</span>
           </a>
 
           <a
             href="#videos"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#EFE6D6] hover:bg-[#E5DBC7] text-[#3D3325] font-semibold text-sm border border-[#DACBB5] shadow-2xs transition-all active:scale-98"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#EFE6D6] hover:bg-[#E5DBC7] text-[#3D3325] font-semibold text-xs sm:text-sm border border-[#DACBB5] transition-all active:scale-98"
           >
-            <span>شاهد الفيديوهات على يوتيوب</span>
+            <Video className="w-4 h-4 text-[#8C6D3F]" />
+            <span>الفيديوهات</span>
           </a>
-        </div>
 
-        {/* Feature Highlights Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-left max-w-3xl mx-auto pt-6 border-t border-[#E8DFCFC0]">
-          <div className="p-3.5 rounded-xl bg-[#F6F0E6]/70 border border-[#E5DBCB]">
-            <div className="text-xs font-bold text-[#3B3224] mb-0.5">7 Custom AI Gems</div>
-            <div className="text-xs text-[#736756] leading-relaxed">Built specifically for the high-volume realities of medical curriculum.</div>
-          </div>
-          <div className="p-3.5 rounded-xl bg-[#F6F0E6]/70 border border-[#E5DBCB]">
-            <div className="text-xs font-bold text-[#3B3224] mb-0.5">Evidence-Based Science</div>
-            <div className="text-xs text-[#736756] leading-relaxed">Spaced repetition, active retrieval, and behavioral habit mechanics.</div>
-          </div>
-          <div className="p-3.5 rounded-xl bg-[#F6F0E6]/70 border border-[#E5DBCB]">
-            <div className="text-xs font-bold text-[#3B3224] mb-0.5">Free & Accessible</div>
-            <div className="text-xs text-[#736756] leading-relaxed">Publicly shared on Google Gemini for immediate student workflows.</div>
-          </div>
+          <a
+            href="#course"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#EFE6D6] hover:bg-[#E5DBC7] text-[#3D3325] font-semibold text-xs sm:text-sm border border-[#DACBB5] transition-all active:scale-98"
+          >
+            <GraduationCap className="w-4 h-4 text-[#8C6D3F]" />
+            <span>MEDstudy OS</span>
+          </a>
         </div>
       </div>
     </section>
