@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, GraduationCap, Shield, Youtube, BookOpen } from 'lucide-react';
+import { Sparkles, GraduationCap, Shield, Youtube, BookOpen, Upload } from 'lucide-react';
 
 interface HeaderProps {
   onOpenPrivacy: (tab: 'privacy' | 'terms' | 'disclaimer') => void;
@@ -29,7 +29,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenPrivacy }) => {
         </a>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[#645A4C]">
+        <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-[#645A4C]">
+          <a href="#lecture-studio" className="hover:text-[#1F1C18] transition-colors flex items-center gap-1.5 font-bold text-amber-900 bg-amber-100/60 px-2.5 py-1 rounded-lg border border-amber-300/50 lowercase">
+            <Upload className="w-3.5 h-3.5 text-amber-600" />
+            lecture digestion
+          </a>
           <a href="#gems" className="hover:text-[#1F1C18] transition-colors flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-[#A28148]" />
             AI Gems

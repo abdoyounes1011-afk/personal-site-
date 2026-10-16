@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
 import { WhySection } from './components/WhySection';
+import { LectureStudioSection } from './components/LectureStudioSection';
 import { ToolsSection } from './components/ToolsSection';
 import { ArticlesSection } from './components/ArticlesSection';
 import { ArticleModal } from './components/ArticleModal';
@@ -27,6 +28,9 @@ export default function App() {
 
         {/* Why does this website exist Section */}
         <WhySection />
+
+        {/* AI Lecture Processing Studio - 4 Modes */}
+        <LectureStudioSection />
 
         {/* 7 AI Gems Tools Section */}
         <ToolsSection />
