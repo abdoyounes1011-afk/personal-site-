@@ -17,6 +17,9 @@ import {
   Printer,
   Hash,
   GitFork,
+  Key,
+  X,
+  ExternalLink,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -27,6 +30,8 @@ import {
   processLectureWithGemini,
   LECTURE_MODES,
   LectureMode,
+  getStoredApiKey,
+  setStoredApiKey,
 } from '../services/geminiService';
 
 // Helper to clean up any rogue HTML tags like </mark rounded">> and format highlights cleanly
@@ -60,6 +65,11 @@ export const LectureStudioSection: React.FC = () => {
   const [progressStatus, setProgressStatus] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Custom API key state (supports direct client fallback on GitHub Pages / static hosting)
+  const [customApiKey, setCustomApiKey] = useState<string>(() => getStoredApiKey());
+  const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
+  const [tempKeyInput, setTempKeyInput] = useState<string>('');
+
   // Output state
   const [resultText, setResultText] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -83,6 +93,15 @@ export const LectureStudioSection: React.FC = () => {
       setFile(droppedFile);
       setErrorMsg(null);
     }
+  };
+
+  // Save custom key
+  const handleSaveCustomKey = (key: string) => {
+    const trimmed = key.trim();
+    setStoredApiKey(trimmed);
+    setCustomApiKey(trimmed);
+    setShowKeyModal(false);
+    setErrorMsg(null);
   };
 
   // Start Lecture Processing
@@ -126,6 +145,7 @@ export const LectureStudioSection: React.FC = () => {
       }, 700);
 
       const generatedResult = await processLectureWithGemini({
+        apiKey: customApiKey,
         mode: selectedMode,
         lectureText: rawText,
         fileName: file?.name || 'Medical Lecture Notes',
@@ -137,7 +157,11 @@ export const LectureStudioSection: React.FC = () => {
       setProgressStatus('تم اكتمال المعالجة بنجاح!');
       setResultText(generatedResult);
     } catch (err: any) {
-      setErrorMsg(err.message || 'حدث خطأ أثناء معالجة المحاضرة.');
+      const msg = err.message || 'حدث خطأ أثناء معالجة المحاضرة.';
+      setErrorMsg(msg);
+      if (msg.includes('404') || msg.includes('STATUS_404_STATIC_HOST') || msg.includes('API_KEY')) {
+        setShowKeyModal(true);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -681,28 +705,67 @@ export const LectureStudioSection: React.FC = () => {
             )}
           </div>
 
-          {/* STEP 3: Medical AI Ready Status */}
-          <div className="mb-8 p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between">
+          {/* STEP 3: Medical AI Ready Status & Optional Key Settings */}
+          <div className="mb-8 p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span className="font-bold text-xs sm:text-sm text-emerald-950">
-                محرك الذكاء الاصطناعي الطبي متصل (Google Gemini Medical Engine)
+              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="text-right">
+                <span className="font-bold text-xs sm:text-sm text-emerald-950 block">
+                  محرك الذكاء الاصطناعي الطبي متصل (Google Gemini Medical Engine)
+                </span>
+                {customApiKey ? (
+                  <span className="text-[11px] text-emerald-700 block">
+                    تم ربط مفتاح API مخصص للتشغيل المباشر على GitHub Pages
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-emerald-700 block">
+                    يعمل تلقائياً عبر الخادم، ومتاح إضافة مفتاح للعمل بدون خادم
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setTempKeyInput(customApiKey);
+                  setShowKeyModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-white/90 hover:bg-emerald-100/60 text-emerald-900 text-xs font-bold transition-colors cursor-pointer"
+              >
+                <Key className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{customApiKey ? 'تعديل المفتاح' : 'إعدادات المفتاح'}</span>
+              </button>
+              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>جاهز للمعالجة</span>
               </span>
             </div>
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>جاهز للمعالجة</span>
-            </span>
           </div>
 
-          {/* Error Message Alert */}
+          {/* Error Message Alert with Direct Resolution Button */}
           {errorMsg && (
-            <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm flex items-start gap-2.5">
-              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-bold">تنبيه:</p>
-                <p className="mt-0.5">{errorMsg}</p>
+            <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">تنبيه:</p>
+                  <p className="mt-0.5 leading-relaxed">{errorMsg}</p>
+                </div>
               </div>
+              {(errorMsg.includes('404') || errorMsg.includes('STATUS_404_STATIC_HOST') || !customApiKey) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempKeyInput(customApiKey);
+                    setShowKeyModal(true);
+                  }}
+                  className="shrink-0 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>إدخال مفتاح API للمتابعة فوراً</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -889,6 +952,93 @@ export const LectureStudioSection: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Sleek API Key Modal for GitHub Pages & Custom Environments */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-3xl bg-[#FAF7F2] border border-[#DACBB5] p-6 sm:p-7 shadow-2xl relative text-right">
+            <button
+              type="button"
+              onClick={() => setShowKeyModal(false)}
+              className="absolute top-5 left-5 p-1.5 rounded-full hover:bg-[#EADBCE] text-[#7E7465] transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-9 h-9 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800">
+                <Key className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-[#24211D]">
+                  ربط مفتاح Gemini API
+                </h3>
+                <p className="text-xs text-[#7E7465]">
+                  للتشغيل المباشر على GitHub Pages والاستضافات الثابتة
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#5D5548] leading-relaxed mb-4">
+              إذا كنت تستخدم التطبيق من GitHub Pages أو بدون خادم Node نشط، يمكنك إدخال مفتاحك المجاني من Google AI Studio ليقوم المتصفح بمعالجة المحاضرة مباشرة دون أي أخطاء 404.
+            </p>
+
+            <div className="space-y-3 mb-5">
+              <label className="block text-xs font-bold text-[#3D3428]">
+                مفتاح API الخاص بك (Google AI Studio Key):
+              </label>
+              <input
+                type="text"
+                value={tempKeyInput}
+                onChange={(e) => setTempKeyInput(e.target.value)}
+                placeholder="AIzaSy..."
+                dir="ltr"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#DACBB5] text-xs font-mono text-[#2D2A26] focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+              <div className="flex items-center justify-between text-[11px]">
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-800 hover:text-amber-900 font-semibold inline-flex items-center gap-1 hover:underline"
+                >
+                  <span>الحصول على مفتاح مجاني من Google</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+                {customApiKey && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempKeyInput('');
+                      handleSaveCustomKey('');
+                    }}
+                    className="text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
+                  >
+                    حذف المفتاح المحفوظ
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowKeyModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-[#7E7465] hover:bg-[#EADBCE]/50 transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSaveCustomKey(tempKeyInput)}
+                className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 shadow-sm transition-all cursor-pointer"
+              >
+                حفظ والمتابعة
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
