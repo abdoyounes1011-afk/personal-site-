@@ -2,12 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Upload,
   FileText,
-  Key,
-  ExternalLink,
   Sparkles,
   Check,
-  Eye,
-  EyeOff,
   Copy,
   Download,
   RotateCcw,
@@ -58,15 +54,6 @@ export const LectureStudioSection: React.FC = () => {
   const [isTextInputOpen, setIsTextInputOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // API Key state (saved in localStorage)
-  const [apiKey, setApiKey] = useState<string>(() => {
-    return localStorage.getItem('medstudy_gemini_api_key') || '';
-  });
-  const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
-  const [tempKey, setTempKey] = useState<string>('');
-  const [isKeyVisible, setIsKeyVisible] = useState(false);
-  const [keySavedNotice, setKeySavedNotice] = useState(false);
-
   // Processing & progress states
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
@@ -76,29 +63,8 @@ export const LectureStudioSection: React.FC = () => {
   // Output state
   const [resultText, setResultText] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
-  // Sync temp key on mount
-  useEffect(() => {
-    if (apiKey) {
-      setTempKey(apiKey);
-    }
-  }, [apiKey]);
-
-  // Handle saving API key
-  const handleSaveApiKey = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const clean = tempKey.trim();
-    if (!clean) {
-      setErrorMsg('يرجى إدخال مفتاح الـ API قبل التفعيل.');
-      return;
-    }
-    setApiKey(clean);
-    localStorage.setItem('medstudy_gemini_api_key', clean);
-    setShowKeyInput(false);
-    setErrorMsg(null);
-    setKeySavedNotice(true);
-    setTimeout(() => setKeySavedNotice(false), 3000);
-  };
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const markdownContainerRef = useRef<HTMLDivElement>(null);
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,10 +72,6 @@ export const LectureStudioSection: React.FC = () => {
     if (selected) {
       setFile(selected);
       setErrorMsg(null);
-      // Prompt student for API key if not yet set
-      if (!apiKey) {
-        setShowKeyInput(true);
-      }
     }
   };
 
@@ -120,9 +82,6 @@ export const LectureStudioSection: React.FC = () => {
     if (droppedFile) {
       setFile(droppedFile);
       setErrorMsg(null);
-      if (!apiKey) {
-        setShowKeyInput(true);
-      }
     }
   };
 
@@ -130,12 +89,6 @@ export const LectureStudioSection: React.FC = () => {
   const handleProcess = async () => {
     if (!file && !directText.trim()) {
       setErrorMsg('يرجى اختيار ملف المحاضرة (PDF أو TXT) أو لصق نص المحاضرة للبدء.');
-      return;
-    }
-
-    if (!apiKey) {
-      setShowKeyInput(true);
-      setErrorMsg('يرجى إدخال مفتاح Google AI Studio Gemini API للمتابعة.');
       return;
     }
 
@@ -173,7 +126,6 @@ export const LectureStudioSection: React.FC = () => {
       }, 700);
 
       const generatedResult = await processLectureWithGemini({
-        apiKey,
         mode: selectedMode,
         lectureText: rawText,
         fileName: file?.name || 'Medical Lecture Notes',
@@ -203,12 +155,12 @@ export const LectureStudioSection: React.FC = () => {
     }
   };
 
-  // Download result as Word-compatible document (.doc) with styling
+  // Download result as Word-compatible document (.doc) with real styled HTML
   const handleDownloadDoc = () => {
     if (!resultText) return;
-    const cleanContent = sanitizeMedicalMarkdown(resultText);
     const modeTitle = LECTURE_MODES.find((m) => m.id === selectedMode)?.name || 'Medical Analysis';
     const docTitle = `${file?.name?.replace(/\.[^/.]+$/, '') || 'Lecture'}_${selectedMode}`;
+    const contentHtml = markdownContainerRef.current?.innerHTML || '';
 
     const htmlDocument = `<!DOCTYPE html>
 <html lang="en">
@@ -216,19 +168,88 @@ export const LectureStudioSection: React.FC = () => {
   <meta charset="utf-8">
   <title>${docTitle}</title>
   <style>
-    body { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.6; color: #1e1e1e; margin: 30px; }
-    h1 { color: #8C6D3F; font-size: 20pt; border-bottom: 2px solid #E2D6C3; padding-bottom: 6px; margin-bottom: 10px; }
-    h2 { color: #5A472E; font-size: 15pt; margin-top: 20px; }
-    h3 { color: #333333; font-size: 13pt; }
-    p.meta { color: #666; font-size: 10pt; margin-bottom: 20px; font-style: italic; }
-    pre { white-space: pre-wrap; font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.6; }
+    body {
+      font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #1c1917;
+      margin: 36px;
+    }
+    h1 {
+      color: #1C1917;
+      font-size: 18pt;
+      border-bottom: 2px solid #D97706;
+      padding-bottom: 6px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      font-weight: bold;
+    }
+    h2 {
+      color: #78350F;
+      font-size: 14pt;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    h3 {
+      color: #292524;
+      font-size: 12pt;
+      margin-top: 16px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    strong {
+      font-weight: bold;
+      color: #78350F;
+      background-color: #FEF08A;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 10pt;
+    }
+    th {
+      background-color: #F5EFE6;
+      color: #292524;
+      border: 1px solid #D6C7B2;
+      padding: 6px 10px;
+      text-align: left;
+      font-weight: bold;
+    }
+    td {
+      border: 1px solid #E7DCD0;
+      padding: 6px 10px;
+      color: #292524;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td {
+      background-color: #FAF6F0;
+    }
+    p.meta {
+      color: #78716C;
+      font-size: 10pt;
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+    ul, ol {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+    li {
+      margin-bottom: 4px;
+    }
   </style>
 </head>
 <body>
   <h1>${modeTitle}</h1>
   <p class="meta">Document: ${file?.name || 'Medical Lecture'} • Mode: ${modeTitle} • Abdelrhman Fawzy MEDstudy OS</p>
-  <hr/>
-  <pre>${cleanContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+  <hr style="border: none; border-top: 1px solid #E7DCD0; margin-bottom: 20px;" />
+  <div class="lecture-content">
+    ${contentHtml}
+  </div>
 </body>
 </html>`;
 
@@ -258,83 +279,236 @@ export const LectureStudioSection: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Direct Download as PDF file (.pdf)
-  const handleDownloadPdf = () => {
+  // Direct Download as PDF file (.pdf) with clean headings, highlights, bold and tables
+  const handleDownloadPdf = async () => {
     if (!resultText) return;
-    const cleanContent = sanitizeMedicalMarkdown(resultText);
-    const modeTitle = LECTURE_MODES.find((m) => m.id === selectedMode)?.name || 'Medical Analysis';
-    const docTitle = `${file?.name?.replace(/\.[^/.]+$/, '') || 'Lecture'}_${selectedMode}`;
+    setIsExportingPdf(true);
 
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'pt',
-      format: 'a4',
-    });
+    try {
+      const modeTitle = LECTURE_MODES.find((m) => m.id === selectedMode)?.name || 'Medical Analysis';
+      const docTitle = `${file?.name?.replace(/\.[^/.]+$/, '') || 'Lecture'}_${selectedMode}`;
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 40;
-    const maxLineWidth = pageWidth - margin * 2;
+      // Create dedicated A4 print container with valid coordinates (not offscreen negative)
+      const printContainer = document.createElement('div');
+      printContainer.id = 'pdf-export-render-target';
+      printContainer.style.position = 'fixed';
+      printContainer.style.left = '0';
+      printContainer.style.top = '0';
+      printContainer.style.zIndex = '-9999';
+      printContainer.style.opacity = '1';
+      printContainer.style.pointerEvents = 'none';
+      printContainer.style.width = '794px'; // 210mm at 96 DPI
+      printContainer.style.padding = '36px 44px';
+      printContainer.style.boxSizing = 'border-box';
+      printContainer.style.backgroundColor = '#FFFFFF';
+      printContainer.style.color = '#1C1917';
+      printContainer.style.fontFamily = "'Plus Jakarta Sans', Arial, -apple-system, sans-serif";
+      printContainer.style.fontSize = '12px';
+      printContainer.style.lineHeight = '1.6';
+      printContainer.style.direction = 'ltr';
+      printContainer.style.textAlign = 'left';
 
-    // Header Title
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(36, 33, 29);
-    doc.text(modeTitle, margin, 45);
+      const headerHtml = `
+        <div style="border-bottom: 2px solid #D97706; padding-bottom: 12px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+            <h1 style="font-size: 20px; font-weight: 800; color: #1C1917; margin: 0; letter-spacing: -0.02em;">
+              ${modeTitle}
+            </h1>
+            <span style="font-size: 11px; font-weight: 800; color: #B45309; background: #FEF3C7; padding: 3px 10px; border-radius: 999px; text-transform: uppercase;">
+              MEDstudy OS
+            </span>
+          </div>
+          <div style="font-size: 10.5px; color: #78716C; display: flex; gap: 16px;">
+            <span><strong>Document:</strong> ${file?.name || 'Medical Lecture'}</span>
+            <span><strong>Mode:</strong> ${modeTitle}</span>
+            <span><strong>Platform:</strong> Abdelrhman Fawzy AI Ecosystem</span>
+          </div>
+        </div>
+      `;
 
-    // Subtitle / Document Info
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(140, 109, 63);
-    doc.text(`Document: ${file?.name || 'Medical Lecture'} • MEDstudy OS by Abdelrhman Fawzy`, margin, 60);
+      const contentHtml = markdownContainerRef.current?.innerHTML || '';
 
-    // Separator Line
-    doc.setDrawColor(226, 214, 195);
-    doc.setLineWidth(1);
-    doc.line(margin, 68, pageWidth - margin, 68);
+      printContainer.innerHTML = `
+        ${headerHtml}
+        <div class="pdf-rendered-body">
+          ${contentHtml}
+        </div>
+        <div style="margin-top: 28px; padding-top: 10px; border-top: 1px solid #E7E5E4; text-align: center; font-size: 9px; color: #A8A29E;">
+          Abdelrhman Fawzy MEDstudy OS • Medical AI Lecture Studio • Generated for Medical Education
+        </div>
+      `;
 
-    // Body text formatting
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(45, 42, 38);
+      const styleEl = document.createElement('style');
+      styleEl.innerHTML = `
+        #pdf-export-render-target * {
+          box-sizing: border-box !important;
+        }
+        #pdf-export-render-target h1 {
+          font-size: 16px !important;
+          font-weight: 800 !important;
+          color: #1C1917 !important;
+          margin-top: 20px !important;
+          margin-bottom: 10px !important;
+          border-bottom: 1.5px solid #E7DCD0 !important;
+          padding-bottom: 4px !important;
+          page-break-after: avoid !important;
+        }
+        #pdf-export-render-target h2 {
+          font-size: 13.5px !important;
+          font-weight: 700 !important;
+          color: #78350F !important;
+          margin-top: 16px !important;
+          margin-bottom: 8px !important;
+          page-break-after: avoid !important;
+        }
+        #pdf-export-render-target h3 {
+          font-size: 12px !important;
+          font-weight: 700 !important;
+          color: #292524 !important;
+          margin-top: 14px !important;
+          margin-bottom: 6px !important;
+          page-break-after: avoid !important;
+        }
+        #pdf-export-render-target h4 {
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          color: #3D3428 !important;
+          margin-top: 12px !important;
+          margin-bottom: 5px !important;
+          page-break-after: avoid !important;
+        }
+        #pdf-export-render-target h5 {
+          font-size: 10.5px !important;
+          font-weight: 700 !important;
+          color: #5A4F3D !important;
+          margin-top: 10px !important;
+          margin-bottom: 4px !important;
+          page-break-after: avoid !important;
+        }
+        #pdf-export-render-target strong {
+          font-weight: 700 !important;
+          color: #78350F !important;
+          background-color: #FEF08A !important;
+          padding: 1px 4px !important;
+          border-radius: 3px !important;
+          box-decoration-break: clone !important;
+          -webkit-box-decoration-break: clone !important;
+        }
+        #pdf-export-render-target table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          margin: 12px 0 !important;
+          font-size: 9.5px !important;
+          line-height: 1.4 !important;
+          page-break-inside: auto !important;
+        }
+        #pdf-export-render-target thead {
+          display: table-header-group !important;
+        }
+        #pdf-export-render-target tr {
+          page-break-inside: avoid !important;
+        }
+        #pdf-export-render-target th {
+          background-color: #F5EFE6 !important;
+          color: #292524 !important;
+          font-weight: 700 !important;
+          border: 1px solid #D6C7B2 !important;
+          padding: 5px 8px !important;
+          text-align: left !important;
+        }
+        #pdf-export-render-target td {
+          border: 1px solid #E7DCD0 !important;
+          padding: 5px 8px !important;
+          color: #292524 !important;
+          vertical-align: top !important;
+        }
+        #pdf-export-render-target tr:nth-child(even) td {
+          background-color: #FCF9F5 !important;
+        }
+        #pdf-export-render-target ul, #pdf-export-render-target ol {
+          margin: 8px 0 !important;
+          padding-left: 20px !important;
+        }
+        #pdf-export-render-target li {
+          margin-bottom: 4px !important;
+        }
+      `;
+      printContainer.appendChild(styleEl);
+      document.body.appendChild(printContainer);
 
-    const lines = doc.splitTextToSize(cleanContent, maxLineWidth);
-    let y = 88;
-    const lineHeight = 13;
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'pt',
+        format: 'a4',
+      });
 
-    for (let i = 0; i < lines.length; i++) {
-      if (y + lineHeight > pageHeight - margin) {
-        doc.addPage();
-        y = margin;
+      let success = false;
+      try {
+        await new Promise<void>((resolve, reject) => {
+          doc.html(printContainer, {
+            callback: (pdf) => {
+              try {
+                pdf.save(`${docTitle}.pdf`);
+                success = true;
+                resolve();
+              } catch (e) {
+                reject(e);
+              }
+            },
+            x: 20,
+            y: 20,
+            width: 555,
+            windowWidth: 794,
+            autoPaging: 'text',
+            html2canvas: {
+              scale: 1.5,
+              useCORS: true,
+              logging: false,
+              backgroundColor: '#FFFFFF',
+            },
+          });
+        });
+      } catch (docHtmlErr) {
+        console.warn('doc.html attempt encountered an issue, running canvas renderer:', docHtmlErr);
       }
-      const currentLine = lines[i];
-      if (currentLine.startsWith('# ')) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.setTextColor(36, 33, 29);
-        y += 6;
-        doc.text(currentLine.replace(/^#\s*/, ''), margin, y);
-        y += 3;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(45, 42, 38);
-      } else if (currentLine.startsWith('## ') || currentLine.startsWith('### ')) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10.5);
-        doc.setTextColor(140, 109, 63);
-        y += 5;
-        doc.text(currentLine.replace(/^###?\s*/, ''), margin, y);
-        y += 2;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(45, 42, 38);
-      } else {
-        doc.text(currentLine, margin, y);
+
+      if (!success) {
+        const canvas = await html2canvas(printContainer, {
+          scale: 1.5,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#FFFFFF',
+        });
+
+        const imgWidth = 595.28 - 40;
+        const pageHeight = 841.89 - 40;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 20;
+
+        const fallbackDoc = new jsPDF('p', 'pt', 'a4');
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+        fallbackDoc.addImage(imgData, 'JPEG', 20, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight + 20;
+          fallbackDoc.addPage();
+          fallbackDoc.addImage(imgData, 'JPEG', 20, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+
+        fallbackDoc.save(`${docTitle}.pdf`);
       }
-      y += lineHeight;
+
+      document.body.removeChild(printContainer);
+    } catch (err: any) {
+      console.error('PDF export error:', err);
+      setErrorMsg('حدث خطأ أثناء تحميل الـ PDF، يمكنك استخدام زر Print / PDF كخيار بديل مباشر.');
+    } finally {
+      setIsExportingPdf(false);
     }
-
-    doc.save(`${docTitle}.pdf`);
   };
 
   // Print or Save as PDF
@@ -507,93 +681,18 @@ export const LectureStudioSection: React.FC = () => {
             )}
           </div>
 
-          {/* STEP 3: API Key Section (Prompt user for API Key + Google AI Studio Link Button) */}
-          <div className="mb-8 p-5 rounded-2xl bg-[#F4ECE1] border border-[#DACBB5]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-[#F59E0B]" />
-                <span className="font-bold text-sm text-[#24211D]">
-                  مفتاح Google AI Studio API:
-                </span>
-                {apiKey ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    <span>المفتاح مفعل ومحفوظ</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">
-                    <AlertCircle className="w-3 h-3 text-amber-600" />
-                    <span>مطلوب تفعيل المفتاح</span>
-                  </span>
-                )}
-              </div>
-
-              {/* Toggle input card or change key */}
-              <button
-                type="button"
-                onClick={() => setShowKeyInput(!showKeyInput)}
-                className="text-xs text-[#1E40AF] hover:underline font-semibold"
-              >
-                {apiKey ? (showKeyInput ? 'إخفاء الإعدادات' : 'تغيير المفتاح') : 'إدخال المفتاح الآن'}
-              </button>
+          {/* STEP 3: Medical AI Ready Status */}
+          <div className="mb-8 p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-4 h-4 text-emerald-600" />
+              <span className="font-bold text-xs sm:text-sm text-emerald-950">
+                محرك الذكاء الاصطناعي الطبي متصل (Google Gemini Medical Engine)
+              </span>
             </div>
-
-            {/* Notice when key saved */}
-            {keySavedNotice && (
-              <div className="mb-3 text-xs text-emerald-800 bg-emerald-100/80 px-3 py-1.5 rounded-xl border border-emerald-300 flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>تم حفظ وتفعيل مفتاح Google AI Studio بنجاح!</span>
-              </div>
-            )}
-
-            {/* Input Form with Save Button & Google AI Studio Link Button side-by-side */}
-            {(showKeyInput || !apiKey) && (
-              <form onSubmit={handleSaveApiKey} className="space-y-3 pt-2">
-                <div className="relative">
-                  <input
-                    type={isKeyVisible ? 'text' : 'password'}
-                    value={tempKey}
-                    onChange={(e) => setTempKey(e.target.value)}
-                    placeholder="ألصق مفتاح الـ API هنا (AIzaSy...)"
-                    className="w-full rounded-xl border border-[#DACBB5] bg-white px-4 py-2.5 text-sm text-[#24211D] pr-10 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    dir="ltr"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsKeyVisible(!isKeyVisible)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C6D3F] hover:text-[#24211D]"
-                    title={isKeyVisible ? 'إخفاء' : 'إظهار'}
-                  >
-                    {isKeyVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-
-                {/* STRICT REQUIREMENT: Activation button + Google AI Studio website button right beside it */}
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-[#24211D] hover:bg-[#3D3730] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95 cursor-pointer"
-                  >
-                    <Check className="w-4 h-4 text-emerald-400" />
-                    <span>تفعيل المفتاح</span>
-                  </button>
-
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2.5 rounded-xl bg-white hover:bg-[#FAF7F2] text-[#1E40AF] border border-[#DACBB5] text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 hover:border-[#1E40AF] active:scale-95"
-                  >
-                    <span>الحصول على مفتاح من Google AI Studio</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-
-                <p className="text-[11px] text-[#7E7465] leading-relaxed">
-                  * المفتاح مجاني تماماً ويُحفظ محلياً على متصفحك فقط لإرسال المحاضرة مباشرة عبر سيرفرات جوجل الذكية بأعلى سرعة وأمان.
-                </p>
-              </form>
-            )}
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>جاهز للمعالجة</span>
+            </span>
           </div>
 
           {/* Error Message Alert */}
@@ -665,22 +764,27 @@ export const LectureStudioSection: React.FC = () => {
               </div>
 
               {/* Action Buttons: Download Options, Copy, Print, Reset */}
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap no-print">
                 <button
                   type="button"
+                  disabled={isExportingPdf}
                   onClick={handleDownloadPdf}
-                  className="px-3.5 py-2 rounded-xl bg-amber-600 text-white hover:bg-amber-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
-                  title="تحميل فوري كملف PDF قابل للحفظ"
+                  className={`px-3.5 py-2 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer ${
+                    isExportingPdf
+                      ? 'bg-amber-400 cursor-wait'
+                      : 'bg-amber-600 hover:bg-amber-700'
+                  }`}
+                  title="تحميل فوري كملف PDF منسق وجاهز بدون رموز شباك مع هايلايتس وبولد"
                 >
-                  <Download className="w-3.5 h-3.5 text-white" />
-                  <span>Download .pdf</span>
+                  <Download className={`w-3.5 h-3.5 text-white ${isExportingPdf ? 'animate-bounce' : ''}`} />
+                  <span>{isExportingPdf ? 'جاري تجهيز الـ PDF...' : 'Download .pdf'}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDownloadDoc}
                   className="px-3.5 py-2 rounded-xl bg-[#24211D] text-white hover:bg-[#3D3730] text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
-                  title="تحميل كملف Word يدعم الجداول بالكامل"
+                  title="تحميل كملف Word منسق يدعم الجداول والهايلايت"
                 >
                   <Download className="w-3.5 h-3.5 text-amber-400" />
                   <span>Download .doc (Word)</span>
@@ -700,7 +804,7 @@ export const LectureStudioSection: React.FC = () => {
                   type="button"
                   onClick={handlePrint}
                   className="px-3 py-2 rounded-xl bg-white border border-[#DACBB5] text-[#24211D] hover:bg-[#FAF7F2] text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                  title="طباعة أو حفظ كملف PDF"
+                  title="طباعة أو حفظ كملف PDF عبر المتصفح"
                 >
                   <Printer className="w-3.5 h-3.5 text-[#5A4F3D]" />
                   <span>Print / PDF</span>
@@ -728,7 +832,11 @@ export const LectureStudioSection: React.FC = () => {
             </div>
 
             {/* Markdown Viewer with rich table formatting in pure English LTR */}
-            <div className="prose prose-amber max-w-none text-[#2D2A26] leading-relaxed text-sm sm:text-base overflow-x-auto text-left font-sans">
+            <div
+              ref={markdownContainerRef}
+              id="lecture-printable-area"
+              className="prose prose-amber max-w-none text-[#2D2A26] leading-relaxed text-sm sm:text-base overflow-x-auto text-left font-sans"
+            >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -758,6 +866,12 @@ export const LectureStudioSection: React.FC = () => {
                   h3: ({ ...props }) => (
                     <h3 className="text-lg font-bold text-[#24211D] mt-5 mb-2" {...props} />
                   ),
+                  h4: ({ ...props }) => (
+                    <h4 className="text-base font-bold text-[#3D3428] mt-4 mb-2" {...props} />
+                  ),
+                  h5: ({ ...props }) => (
+                    <h5 className="text-sm font-bold text-[#5A4F3D] mt-3 mb-1.5" {...props} />
+                  ),
                   ul: ({ ...props }) => (
                     <ul className="list-disc list-inside space-y-1.5 my-3 pl-2" {...props} />
                   ),
@@ -765,7 +879,7 @@ export const LectureStudioSection: React.FC = () => {
                     <ol className="list-decimal list-inside space-y-1.5 my-3 pl-2" {...props} />
                   ),
                   strong: ({ ...props }) => (
-                    <strong className="font-extrabold text-amber-950 bg-amber-200/60 px-1 py-0.5 rounded shadow-2xs" {...props} />
+                    <strong className="font-extrabold text-amber-950 bg-amber-200/80 px-1.5 py-0.5 rounded shadow-2xs mx-0.5 border border-amber-300/40 inline-block my-0.5" {...props} />
                   ),
                 }}
               >

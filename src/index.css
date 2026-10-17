@@ -40,3 +40,57 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #C4B299;
 }
+
+/* Print Optimization for Medical Study PDF/Print */
+@media print {
+  body {
+    background-color: #FFFFFF !important;
+    color: #1C1917 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  header,
+  footer,
+  #hero,
+  #why,
+  #tools,
+  #articles,
+  #videos,
+  #course,
+  .no-print {
+    display: none !important;
+  }
+
+  #lecture-studio {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  #lecture-printable-area {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 24px 32px !important;
+    background: #FFFFFF !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  #lecture-printable-area * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  h1, h2, h3, tr {
+    page-break-inside: avoid !important;
+  }
+
+  table {
+    page-break-inside: auto !important;
+  }
+}
+
