@@ -51,11 +51,12 @@ async function startServer() {
         return res.status(400).json({ error: 'محتوى المحاضرة مطلوب للبدء.' });
       }
 
-      const apiKey = process.env.GEMINI_API_KEY || (req.body.apiKey ? String(req.body.apiKey).trim() : '');
+      const userProvidedKey = req.body.apiKey ? String(req.body.apiKey).trim() : '';
+      const apiKey = userProvidedKey || process.env.GEMINI_API_KEY || '';
 
       if (!apiKey) {
         return res.status(500).json({
-          error: 'GEMINI_API_KEY غير مهيأ على الخادم. يرجى التأكد من إضافة المفتاح في لوحة التحكم.',
+          error: 'GEMINI_API_KEY غير مهيأ على الخادم. يرجى التأكد من إضافة المفتاح في لوحة التحكم أو إدخال مفتاحك الخاص.',
         });
       }
 
@@ -89,9 +90,12 @@ Generate the complete, exhaustive English output now using clean Markdown:
 `;
 
       const candidateModels = [
-        'gemini-3.8-flash',
         'gemini-3.1-flash-lite',
+        'gemini-3.8-flash',
         'gemini-flash-latest',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
       ];
 
       let lastError: any = null;
@@ -115,13 +119,11 @@ Generate the complete, exhaustive English output now using clean Markdown:
         } catch (err: any) {
           console.warn(`[AI Studio] Model ${modelName} error:`, err?.message || err);
           lastError = err;
-          const msg = err?.message || '';
-          if (msg.includes('404') || msg.includes('NOT_FOUND') || msg.includes('503') || msg.includes('UNAVAILABLE')) {
-            continue;
-          }
-          if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
+          const msg = (err?.message || '').toLowerCase();
+          if (msg.includes('api_key_invalid') || msg.includes('api key not valid')) {
             break;
           }
+          continue;
         }
       }
 

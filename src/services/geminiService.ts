@@ -102,9 +102,14 @@ ${cleanText}
 Generate the complete, exhaustive English output now using clean Markdown:
 `;
 
+  // Standard public Google AI Studio models available to all user keys, followed by preview aliases
   const candidateModels = [
-    'gemini-3.8-flash',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-2.5-flash-lite',
     'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
     'gemini-flash-latest',
   ];
 
@@ -112,7 +117,7 @@ Generate the complete, exhaustive English output now using clean Markdown:
 
   for (const modelName of candidateModels) {
     try {
-      onStatusUpdate?.('جاري توليد التحليل الطبي المتكامل...');
+      onStatusUpdate?.(`جاري توليد التحليل الطبي (${modelName})...`);
       const response = await ai.models.generateContent({
         model: modelName,
         contents: fullPrompt,
@@ -128,22 +133,20 @@ Generate the complete, exhaustive English output now using clean Markdown:
     } catch (err: any) {
       console.warn(`[Gemini Client Fallback] Model ${modelName} error:`, err?.message || err);
       lastError = err;
-      const msg = err?.message || '';
-      if (msg.includes('404') || msg.includes('NOT_FOUND') || msg.includes('503') || msg.includes('UNAVAILABLE')) {
-        continue;
-      }
-      if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
+      const msg = (err?.message || '').toLowerCase();
+      if (msg.includes('api_key_invalid') || msg.includes('api key not valid') || msg.includes('unregistered caller')) {
         break;
       }
+      continue;
     }
   }
 
-  const errText = lastError?.message || '';
-  if (errText.includes('API_KEY_INVALID') || errText.includes('API key not valid')) {
-    throw new Error('مفتاح Gemini API غير صالح أو انتهت صلاحيته. يُرجى التحقق من المفتاح في الإعدادات.');
+  const errText = (lastError?.message || '').toLowerCase();
+  if (errText.includes('api_key_invalid') || errText.includes('api key not valid') || errText.includes('unregistered caller')) {
+    throw new Error('مفتاح Gemini API غير صالح أو لم يتم تفعيله. يُرجى التحقق من المفتاح في الإعدادات.');
   }
-  if (errText.includes('429') || errText.includes('quota') || errText.includes('Resource has been exhausted')) {
-    throw new Error('تم بلوغ حد الاستخدام المجاني المؤقت، يُرجى الانتظار 30 ثانية ثم إعادة المحاولة.');
+  if (errText.includes('429') || errText.includes('quota') || errText.includes('resource has been exhausted')) {
+    throw new Error('تم بلوغ حد الاستخدام المجاني المؤقت، يُرجى الانتظار دقيقة واحدة ثم إعادة المحاولة.');
   }
 
   throw new Error(lastError?.message || 'تعذرت معالجة المحاضرة عبر نموذج الذكاء الاصطناعي.');
@@ -169,10 +172,30 @@ export async function processLectureWithGemini({
     throw new Error('محتوى المحاضرة فارغ، يرجى التأكد من اختيار ملف صالح أو كتابة النص.');
   }
 
+  const candidateKey = apiKey?.trim() || getStoredApiKey();
+
+  // If user already has a custom API key, try direct client-side processing if in static/GitHub Pages environment
+  const isLikelyStatic = typeof window !== 'undefined' && (
+    window.location.hostname.includes('github.io') ||
+    window.location.hostname.includes('pages.dev') ||
+    window.location.hostname.includes('vercel.app') ||
+    window.location.protocol === 'file:'
+  );
+
+  if (isLikelyStatic && candidateKey) {
+    return await processLectureClientSide({
+      apiKey: candidateKey,
+      mode,
+      cleanText,
+      fileName,
+      onStatusUpdate,
+    });
+  }
+
   onStatusUpdate?.('جاري إرسال المحاضرة للمعالجة...');
 
   // Step 1: Try server-side endpoint first
-  let serverReturned404 = false;
+  let shouldFallbackToClient = false;
   try {
     const response = await fetch('/api/process-lecture', {
       method: 'POST',
@@ -183,42 +206,44 @@ export async function processLectureWithGemini({
         mode,
         lectureText: cleanText,
         fileName: fileName || 'Medical Lecture Notes',
-        apiKey: apiKey?.trim() || undefined,
+        apiKey: candidateKey || undefined,
       }),
     });
 
-    if (response.status === 404) {
-      console.warn('[GeminiService] Server endpoint /api/process-lecture returned 404. Attempting client-side fallback...');
-      serverReturned404 = true;
+    if (response.status === 404 || response.status === 405 || response.status === 502) {
+      console.warn('[GeminiService] Server endpoint returned ' + response.status + '. Falling back to client-side...');
+      shouldFallbackToClient = true;
     } else {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        const errorMsg = data?.error || `حدث خطأ في الخادم (رمز الحالة: ${response.status})`;
-        throw new Error(errorMsg);
+        // If server failed with 500 or 503 and we have a custom key, try client fallback
+        if (candidateKey && (response.status === 500 || response.status === 503)) {
+          shouldFallbackToClient = true;
+        } else {
+          const errorMsg = data?.error || `حدث خطأ في الخادم (رمز الحالة: ${response.status})`;
+          throw new Error(errorMsg);
+        }
+      } else {
+        if (!data?.result) {
+          throw new Error('لم يتم استلام نتائج من نموذج الذكاء الاصطناعي.');
+        }
+        return data.result;
       }
-
-      if (!data?.result) {
-        throw new Error('لم يتم استلام نتائج من نموذج الذكاء الاصطناعي.');
-      }
-
-      return data.result;
     }
   } catch (err: any) {
-    if (serverReturned404 || err?.message?.includes('404') || err?.message?.includes('Failed to fetch')) {
-      serverReturned404 = true;
+    if (shouldFallbackToClient || err?.message?.includes('404') || err?.message?.includes('Failed to fetch') || err?.name === 'TypeError') {
+      shouldFallbackToClient = true;
     } else {
       throw err;
     }
   }
 
-  // Step 2: If server returned 404 (e.g. running on GitHub Pages or static host), fall back to client-side
-  if (serverReturned404) {
-    const candidateKey = apiKey?.trim() || getStoredApiKey();
-
+  // Step 2: Fall back to client-side processing for GitHub Pages / static hosting
+  if (shouldFallbackToClient) {
     if (!candidateKey) {
       throw new Error(
-        'STATUS_404_STATIC_HOST: لم يتم العثور على خادم المعالجة (رمز الحالة 404) نظراً لكون الموقع يعمل على استضافة ثابتة بدون خادم (مثل GitHub Pages). يرجى إدخال مفتاح Gemini API المجاني الخاص بك للمتابعة مباشرة.'
+        'STATUS_404_STATIC_HOST: لم يتم العثور على خادم معالجة نشط (الموقع يعمل على استضافة ثابتة مثل GitHub Pages). يرجى الضغط أدناه وإدخال مفتاح Gemini API المجاني الخاص بك لتعمل المعالجة مباشرة وبدون خادم.'
       );
     }
 

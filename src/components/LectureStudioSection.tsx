@@ -117,6 +117,8 @@ export const LectureStudioSection: React.FC = () => {
     setProgressStatus('جاري فحص المحاضرة...');
     setResultText(null);
 
+    let progressInterval: any = null;
+
     try {
       let rawText = '';
       if (file) {
@@ -134,13 +136,13 @@ export const LectureStudioSection: React.FC = () => {
       setProgressStatus('جاري إرسال المحاضرة للنموذج الطبي وتوليد المخرجات...');
 
       // Simulated smooth progress while model streams/generates
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setProgressPercent((prev) => {
           if (prev >= 92) {
-            clearInterval(progressInterval);
+            if (progressInterval) clearInterval(progressInterval);
             return 92;
           }
-          return prev + 3;
+          return prev + 2;
         });
       }, 700);
 
@@ -152,17 +154,20 @@ export const LectureStudioSection: React.FC = () => {
         onStatusUpdate: (status) => setProgressStatus(status),
       });
 
-      clearInterval(progressInterval);
+      if (progressInterval) clearInterval(progressInterval);
       setProgressPercent(100);
       setProgressStatus('تم اكتمال المعالجة بنجاح!');
       setResultText(generatedResult);
     } catch (err: any) {
-      const msg = err.message || 'حدث خطأ أثناء معالجة المحاضرة.';
-      setErrorMsg(msg);
-      if (msg.includes('404') || msg.includes('STATUS_404_STATIC_HOST') || msg.includes('API_KEY')) {
+      if (progressInterval) clearInterval(progressInterval);
+      const rawMsg = err.message || 'حدث خطأ أثناء معالجة المحاضرة.';
+      const cleanMsg = rawMsg.replace(/^STATUS_404_STATIC_HOST:\s*/i, '');
+      setErrorMsg(cleanMsg);
+      if (rawMsg.includes('404') || rawMsg.includes('STATUS_404_STATIC_HOST') || rawMsg.includes('API_KEY')) {
         setShowKeyModal(true);
       }
     } finally {
+      if (progressInterval) clearInterval(progressInterval);
       setIsProcessing(false);
     }
   };
