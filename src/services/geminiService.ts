@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { getModePrompt, SYSTEM_INSTRUCTION, LectureMode } from './lecturePrompts';
 
 export type { LectureMode };
@@ -17,7 +17,7 @@ export const LECTURE_MODES: LectureModeInfo[] = [
   },
   {
     id: 'qa',
-    name: 'Clinical Medical Q&A Simulator',
+    name: 'Written Essay Q&A (Enumerate & List)',
     iconName: 'HelpCircle',
   },
   {
@@ -46,7 +46,7 @@ const STORAGE_KEY = 'medstudy_gemini_api_key';
 
 export function getStoredApiKey(): string {
   try {
-    return localStorage.getItem(STORAGE_KEY) || (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+    return localStorage.getItem(STORAGE_KEY) || '';
   } catch {
     return '';
   }
@@ -78,7 +78,7 @@ async function processLectureClientSide({
   fileName?: string;
   onStatusUpdate?: (status: string) => void;
 }): Promise<string> {
-  onStatusUpdate?.('جاري معالجة المحاضرة عبر محرك الذكاء الاصطناعي الطبي المباشر...');
+  onStatusUpdate?.('ونقوول بسم الله');
 
   const ai = new GoogleGenAI({
     apiKey: apiKey.trim(),
@@ -99,31 +99,31 @@ COMPLETE LECTURE CONTENT:
 ${cleanText}
 ==================================================
 
+CORE REQUIREMENTS:
+- Provide exhaustive, university-level medical details, comprehensive tables, in-depth pathophysiological mechanisms, and complete clinical breakdowns without any omissions or shortcuts.
+- STRICTLY DO NOT output emojis, arrows (-> or -->), or decorative symbols (such as ==). Use pure clean text, bold keywords, and neat tables.
+
 Generate the complete, exhaustive English output now using clean Markdown:
 `;
 
-  // Standard public Google AI Studio models available to all user keys, followed by preview aliases
   const candidateModels = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-3.1-flash-lite',
     'gemini-3.8-flash',
     'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
   ];
 
   let lastError: any = null;
 
   for (const modelName of candidateModels) {
     try {
-      onStatusUpdate?.(`جاري توليد التحليل الطبي (${modelName})...`);
+      onStatusUpdate?.('ونقوول بسم الله');
       const response = await ai.models.generateContent({
         model: modelName,
         contents: fullPrompt,
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
           temperature: 0.2,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
         },
       });
 
@@ -131,7 +131,7 @@ Generate the complete, exhaustive English output now using clean Markdown:
         return response.text;
       }
     } catch (err: any) {
-      console.warn(`[Gemini Client Fallback] Model ${modelName} error:`, err?.message || err);
+      console.warn(`[AI Engine] Model error:`, err?.message || err);
       lastError = err;
       const msg = (err?.message || '').toLowerCase();
       if (msg.includes('api_key_invalid') || msg.includes('api key not valid') || msg.includes('unregistered caller')) {
@@ -165,7 +165,7 @@ export async function processLectureWithGemini({
   fileName?: string;
   onStatusUpdate?: (status: string) => void;
 }): Promise<string> {
-  onStatusUpdate?.('جاري تهيئة نموذج الذكاء الاصطناعي الطبي...');
+  onStatusUpdate?.('ونقوول بسم الله');
 
   const cleanText = lectureText.trim();
   if (!cleanText) {
@@ -174,34 +174,33 @@ export async function processLectureWithGemini({
 
   const candidateKey = apiKey?.trim() || getStoredApiKey();
 
-  // If user already has a custom API key, try direct client-side processing if in static/GitHub Pages environment
-  const isLikelyStatic = typeof window !== 'undefined' && (
-    window.location.hostname.includes('github.io') ||
-    window.location.hostname.includes('pages.dev') ||
-    window.location.hostname.includes('vercel.app') ||
-    window.location.protocol === 'file:'
-  );
-
-  if (isLikelyStatic && candidateKey) {
-    return await processLectureClientSide({
-      apiKey: candidateKey,
-      mode,
-      cleanText,
-      fileName,
-      onStatusUpdate,
-    });
+  if (!candidateKey) {
+    throw new Error('يرجى إدخال مفتاح Gemini API المجاني الخاص بك للبدء.');
   }
 
-  onStatusUpdate?.('جاري إرسال المحاضرة للمعالجة...');
+  // Process directly with low-latency client engine (under 30s) using user's key
+  return await processLectureClientSide({
+    apiKey: candidateKey,
+    mode,
+    cleanText,
+    fileName,
+    onStatusUpdate,
+  });
 
-  // Step 1: Try server-side endpoint first
+  onStatusUpdate?.('ونقوول بسم الله');
+
+  // Step 1: Try server-side endpoint with 45s timeout constraint
   let shouldFallbackToClient = false;
   try {
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => controller.abort(), 45000);
+
     const response = await fetch('/api/process-lecture', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
       body: JSON.stringify({
         mode,
         lectureText: cleanText,
@@ -209,6 +208,7 @@ export async function processLectureWithGemini({
         apiKey: candidateKey || undefined,
       }),
     });
+    clearTimeout(timeoutTimer);
 
     if (response.status === 404 || response.status === 405 || response.status === 502) {
       console.warn('[GeminiService] Server endpoint returned ' + response.status + '. Falling back to client-side...');

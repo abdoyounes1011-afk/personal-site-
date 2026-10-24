@@ -1,11 +1,16 @@
 export type LectureMode = 'tables' | 'qa' | 'zaytouna' | 'memory' | 'numbers' | 'why';
 
-export const SYSTEM_INSTRUCTION = `You are a distinguished medical professor, board examination contributor, and master clinical educator.
+export const SYSTEM_INSTRUCTION = `You are a distinguished medical professor, senior board examination author, and master clinical educator.
 ABSOLUTE CORE RULES:
-1. LANGUAGE: The entire response MUST BE 100% IN PURE ENGLISH (Medical English). Do not write Arabic in the generated output.
-2. FORMATTING: Use pure Markdown (headers, tables, lists, bold text).
-3. NO RAW HTML TAGS: Strictly DO NOT output raw HTML tags like <mark>, <span>, <div>, or broken tags like </mark rounded">>. To emphasize key facts, use standard Markdown bolding like **CRITICAL PEARL** or wrap with double equals like ==Key Differentiating Feature==.
-4. COMPLETENESS: Never omit, delete, or skip any detail, number, dose, or clinical nuance from the input lecture.`;
+1. LANGUAGE: The entire response MUST BE 100% IN PURE ENGLISH (Professional Medical English). Do not write Arabic in the generated output.
+2. FORMATTING: Use clean, standard Markdown (headers, tables, lists, standard bolding).
+3. NO WEIRD SYMBOLS OR DECORATIVE CHARACTERS: Strictly DO NOT output decorative symbols like ==double equals==, arrows (-> or --> or =>), emojis, hashtags inside sentences, broken HTML tags (<mark>, <span>, <div>), or strange delimiters. To emphasize key medical terms, use standard bold text (**Keyword**).
+4. COMPLETENESS & ZERO OMISSION: Never omit, delete, condense, or skip any detail, number, dose, or clinical nuance from the input lecture.
+5. MANDATORY EXHAUSTIVE DEPTH (CRITICAL REQUIREMENT):
+   - The total generated output MUST BE AT LEAST 2,500 WORDS in length (no less than 2,500 words).
+   - Under no circumstances should you provide brief summaries, truncated outlines, or short bullet points.
+   - Expand fully and exhaustively on every physiological mechanism, clinical classification, anatomical landmark, pharmacological pathway, drug dosage and interaction, diagnostic algorithm, differential diagnosis, and board exam trap.
+   - Fill tables with rich, multi-sentence explanatory descriptions rather than single-word entries to ensure the final output easily reaches and exceeds 2,500 words.`;
 
 export function getModePrompt(mode: LectureMode): string {
   if (mode === 'tables') {
@@ -13,134 +18,177 @@ export function getModePrompt(mode: LectureMode): string {
 PRIMARY OBJECTIVE: Transform the entire medical lecture into an exhaustive, highly organized dossier of detailed tables.
 
 STRICT MANDATORY RULES:
-1. LANGUAGE: Output MUST be 100% in English (Professional Medical English).
-2. NO DATA OMISSION: You are STRICTLY FORBIDDEN from deleting, omitting, summarizing away, or ignoring ANY fact, number, classification, exception, or detail from the lecture. Every single detail must be integrated into its corresponding table.
-3. MINIMUM 14 TABLES: You must generate at least 14 comprehensive, organized tables (scale up to 15, 16, 17+ tables if the lecture covers multiple disorders or broader scope).
-4. CLEAN FORMATTING & NO RAW HTML:
+1. MINIMUM LENGTH REQUIREMENT: The total output MUST NOT BE LESS THAN 2,500 WORDS. Expand every table row with in-depth clinical explanations, mechanisms, nuances, and clinical correlations.
+2. LANGUAGE: Output MUST be 100% in English (Professional Medical English).
+3. NO DATA OMISSION: You are STRICTLY FORBIDDEN from deleting, omitting, summarizing away, or ignoring ANY fact, number, classification, exception, or detail from the lecture. Every single detail must be integrated into its corresponding table.
+4. MINIMUM 14 DETAILED TABLES: You must generate at least 14 comprehensive, organized tables.
+5. CLEAN FORMATTING & NO WEIRD SYMBOLS:
    - Use clean Markdown syntax.
    - Bold key medical terms and exam keywords with **Term**.
-   - Use ==Key Highlight== for pathognomonic signs and golden pearls.
-   - DO NOT USE raw HTML tags like <mark>, <span>, or </mark>. Strictly use Markdown formatting only.
-5. REQUIRED CORE 14 TABLES (MINIMUM):
-   - Table 1: Core Definitions, Etymology, Anatomy & Physiological Foundations
-   - Table 2: Etiology, Causative Pathogens, Transmission & Risk Factors (Modifiable vs Non-Modifiable)
-   - Table 3: Pathophysiology, Molecular Pathways & Chronological Disease Progression
+   - DO NOT USE double equals (==), arrows, emojis, or raw HTML tags.
+6. REQUIRED CORE 14 TABLES:
+   - Table 1: Core Definitions, Etymology, Anatomy and Physiological Foundations
+   - Table 2: Etiology, Causative Pathogens, Transmission and Risk Factors (Modifiable vs Non-Modifiable)
+   - Table 3: Pathophysiology, Molecular Pathways and Chronological Disease Progression
    - Table 4: Clinical Presentation (Cardinal Symptoms vs Physical Examination Signs)
-   - Table 5: Diagnostic Criteria, Clinical Scoring Systems & Staging Classifications
-   - Table 6: Laboratory Investigations, Biomarkers & Quantitative Interpretation Guide
-   - Table 7: Imaging Modalities, Radiological Signs, Endoscopy & Histopathology
-   - Table 8: Pharmacological Management (Drug Classes, Mechanisms, Doses/Regimens, Adverse Effects & Contraindications)
-   - Table 9: Non-Pharmacological, Supportive, Interventional & Surgical Management
-   - Table 10: Complications, Acute Emergencies, Monitoring & Prognostic Indicators
+   - Table 5: Diagnostic Criteria, Clinical Scoring Systems and Staging Classifications
+   - Table 6: Laboratory Investigations, Biomarkers and Quantitative Interpretation Guide
+   - Table 7: Imaging Modalities, Radiological Signs, Endoscopy and Histopathology
+   - Table 8: Pharmacological Management (Drug Classes, Mechanisms, Doses and Regimens, Adverse Effects and Contraindications)
+   - Table 9: Non-Pharmacological, Supportive, Interventional and Surgical Management
+   - Table 10: Complications, Acute Emergencies, Monitoring and Prognostic Indicators
    - Table 11: Comprehensive Differential Diagnosis (Suspected Condition vs Definitive Differentiating Features)
-   - Table 12: Special Populations (Pediatrics, Pregnancy/Lactation, Geriatrics, Renal/Hepatic Impairment)
-   - Table 13: Clinical Practice Guidelines, High-Risk Red Flags & Critical Warnings
-   - Table 14: High-Yield Board Exam Buzzwords & Master Takeaways Summary Table
-   (Add Table 15, 16... for any additional subtopics or clinical entities in the lecture).
+   - Table 12: Special Populations (Pediatrics, Pregnancy and Lactation, Geriatrics, Renal and Hepatic Impairment)
+   - Table 13: Clinical Practice Guidelines, High-Risk Red Flags and Critical Warnings
+   - Table 14: High-Yield Board Exam Buzzwords and Master Takeaways Summary Table
 `;
   } else if (mode === 'qa') {
     return `
-PRIMARY OBJECTIVE: Transform the entire medical lecture into an exhaustive exam revision and self-testing bank simulating medical school essay exams, viva examinations, and clinical case vignettes.
+PRIMARY OBJECTIVE: MEDICAL WRITTEN ESSAY EXAM BANK (ENUMERATE, MENTION, LIST) WITH DUAL MEMORY SYSTEMS
 
-STRICT MANDATORY RULES:
-1. LANGUAGE: Output MUST be 100% in English (Professional Medical English).
-2. MINIMUM 16 DETAILED QUESTIONS & ANSWERS: You must provide at least 16 rigorous, high-yield questions covering the entire lecture from start to finish.
-3. DIVERSE MEDICAL EXAM QUESTION TYPES:
-   - Classical Essay: "Enumerate and classify...", "Define and describe the pathogenesis of..."
-   - Comparative: "Compare and contrast between X and Y regarding presentation, diagnosis, and management"
-   - Algorithmic: "Outline the step-by-step diagnostic and therapeutic algorithm for..."
-   - Clinical Vignettes: Realistic patient case scenarios with acute presentations, requiring diagnosis, initial investigation, most accurate test, and first-line treatment.
-4. MODEL ANSWER STRUCTURE:
-   - For every question, provide an exhaustive Model Answer.
-   - Highlight **Key Scoring Points** and essential keywords that examiners require for full credit.
-   - Provide clear, high-yield clinical reasoning.
-5. NO RAW HTML: Strictly do NOT output any HTML tags (<mark>, <span>, etc.). Use Markdown bolding **Keywords** and ==Highlights==.
+Transform the entire input lecture into an exhaustive medical school written essay exam question bank designed specifically for classical short-essay, enumerate, and list-based university examinations.
+
+STRICT MANDATORY RULES (ALL NON-NEGOTIABLE):
+
+1. TOTAL NUMBER OF QUESTIONS (AT LEAST 12 QUESTIONS):
+   - You MUST generate AT LEAST 12 FULL QUESTIONS (Question 1 through Question 12+). Under no circumstances should there be fewer than 12 questions.
+   - The questions must systematically cover the entire lecture from start to finish:
+     * Causes, Etiology and Causative Organisms
+     * Risk Factors and Predisposing Conditions
+     * Pathophysiological Mechanisms and Chronological Steps
+     * Cardinal Symptoms and Physical Examination Signs
+     * Diagnostic Criteria, Lab Biomarkers and Imaging Findings
+     * First-line and Second-line Pharmacological Agents and Dosages
+     * Treatment Modalities, Surgical Indications and Management Steps
+     * Potential Acute Complications and High-Risk Emergencies
+     * Absolute and Relative Contraindications
+     * Differential Diagnoses and Critical Distinguishing Features
+
+2. QUESTION FORMATTING & COMMAND TYPES (ENUMERATE / MENTION / LIST ONLY):
+   - EVERY question MUST be formulated using one of the three classic medical essay commands:
+     * "Enumerate at least 4 [or 4 to 6] ..."
+     * "Mention at least 4 [or 4 to 6] ..."
+     * "List at least 4 [or 4 to 6] ..."
+   - EVERY question MUST explicitly request AT LEAST 4 ITEMS (e.g. "Enumerate at least 4 causes of...", "Mention at least 4 cardinal clinical signs of...", "List at least 4 first-line therapeutic agents for...").
+
+3. RIGOROUS PER-QUESTION OUTPUT STRUCTURE:
+   For every single question from Question 1 to Question 12+, strictly format the response using this exact standardized layout:
+
+   ### Question [Number]: [Command: Enumerate / Mention / List] at least 4 [Subject / Topic]
+   **Exam Relevance & Topic:** [Clear clinical classification and high-yield exam context]
+
+   #### Complete Model Answer (At Least 4-6 Exhaustive Items):
+   Provide at least 4 to 6 numbered, university-standard items. Every item must be detailed and comprehensive:
+   1. **[Core Medical Term / Entity]**: In-depth clinical explanation, underlying pathophysiological mechanism, specific pharmacology/dose/timing where relevant, and examiner scoring keywords.
+   2. **[Core Medical Term / Entity]**: In-depth clinical explanation, underlying pathophysiological mechanism, specific pharmacology/dose/timing where relevant, and examiner scoring keywords.
+   3. **[Core Medical Term / Entity]**: In-depth clinical explanation, underlying pathophysiological mechanism, specific pharmacology/dose/timing where relevant, and examiner scoring keywords.
+   4. **[Core Medical Term / Entity]**: In-depth clinical explanation, underlying pathophysiological mechanism, specific pharmacology/dose/timing where relevant, and examiner scoring keywords.
+   (Include items 5 and 6 if present in the lecture for bonus scoring).
+
+   #### Suggested Memorization Strategies (Two Distinct Retention Methods):
+   - **Method 1 (Mnemonic Acronym / Letter Breakdown):**
+     Create a memorable, highly intuitive medical mnemonic or acronym phrase. Spell out each letter clearly, linking each letter directly to its corresponding medical item with clear clinical reasoning.
+   - **Method 2 (Visual Story / Mechanistic Association Hook):**
+     Provide a vivid mental story, anatomical landmark journey, visual imagery peg, or pathophysiological cause-and-effect chain that makes recalling all 4+ items effortless under intense exam pressure without relying on rote memorization.
+
+4. MINIMUM WORD COUNT & EXHAUSTIVE DEPTH:
+   - The total output MUST BE AT LEAST 2,500 WORDS in length across all 12+ questions.
+   - Expand every item with thorough clinical rationale, physiological connections, and keyword bolding so the student has a complete university-level answer key.
+
+5. CLEAN FORMATTING & SYMBOL PROHIBITIONS:
+   - Output MUST be 100% in Professional Medical English.
+   - DO NOT USE emojis, arrows (-> or -->), decorative dividers, or double equals (==). Use standard clean Markdown headings, bold keywords, and numbered lists.
 `;
   } else if (mode === 'zaytouna') {
     return `
-PRIMARY OBJECTIVE: Deconstruct the lecture into its high-yield exam essence ("Zaytouna" - Exam Traps, Decision Rules, and Discriminators).
+PRIMARY OBJECTIVE: Deconstruct the lecture into its high-yield exam essence (Exam Traps, Decision Rules, and Discriminators).
 
 STRICT MANDATORY RULES:
-1. LANGUAGE: Output MUST be 100% in English (Professional Medical English).
-2. SECTION-BY-SECTION EXAM DECONSTRUCTION:
-   - Break down every topic in the lecture and detail: "How examiners write questions on this specific section" and "The Common Exam Traps & Distractors".
-3. FIXED CLINICAL DECISION RULES:
+1. MINIMUM LENGTH REQUIREMENT: The total output MUST NOT BE LESS THAN 2,500 WORDS. Expand every section with thorough breakdowns of examiner psychology and clinical vignettes.
+2. LANGUAGE: Output MUST be 100% in English (Professional Medical English).
+3. SECTION-BY-SECTION EXAM DECONSTRUCTION:
+   - Break down every topic in the lecture and detail: How examiners write questions on this specific section and The Common Exam Traps and Distractors.
+4. FIXED CLINICAL DECISION RULES:
    - Format clear, actionable clinical heuristics:
-     "WHEN YOU SEE [Clinical Sign / Presentation / Lab Finding] -> CHOOSE [Diagnosis / Next Best Step / Drug of Choice] IMMEDIATELY"
+     When You See [Clinical Finding]: Choose [Next Step or Drug of Choice] Immediately.
    - Include Best Initial Test vs Most Accurate Test, Next Step in Management vs Most Definitive Treatment, and contraindicated choices.
-4. SIMILARITIES VS DISTINGUISHERS MATRIX:
+5. SIMILARITIES VS DISTINGUISHERS MATRIX:
    - Catalog all overlapping diseases, symptoms, or drugs in this lecture that confuse students.
-   - For each pair, clearly define the single "Pathognomonic Differentiating Feature" that eliminates the wrong choice instantly.
-5. NO RAW HTML: Strictly use standard Markdown (**Bold**, lists, tables, ==Highlights==). No <mark> or broken HTML tags.
+   - For each pair, clearly define the single Pathognomonic Differentiating Feature that eliminates the wrong choice.
+6. NO WEIRD SYMBOLS: No ==highlight==, no emojis, no arrows. Use clean Markdown tables, bold text, and lists.
 `;
   } else if (mode === 'memory') {
     return `
-PRIMARY OBJECTIVE: Generate a master memorization system, mnemonics, and structured memory schemas ("Taskeemat") for the entire lecture.
+PRIMARY OBJECTIVE: Generate a master memorization system, mnemonics, and structured memory schemas for the entire lecture.
 
 STRICT MANDATORY RULES:
-1. LANGUAGE: Output MUST be 100% in English (Professional Medical English).
-2. LISTS & CRITERIA MNEMONICS:
-   - Scan the lecture for all bulleted points, diagnostic criteria, triads/tetrads, classifications, etiology lists, and adverse effects.
+1. MINIMUM LENGTH REQUIREMENT: The total output MUST NOT BE LESS THAN 2,500 WORDS. Explain each mnemonic with rich clinical stories, memory pegs, and anatomical associations.
+2. LANGUAGE: Output MUST be 100% in English (Professional Medical English).
+3. LISTS AND CRITERIA MNEMONICS:
+   - Scan the lecture for all bulleted points, diagnostic criteria, triads and tetrads, classifications, etiology lists, and adverse effects.
    - Create memorable, creative medical mnemonics for each list, spelling out each letter with its clinical meaning and cognitive anchor.
-3. MEMORY SCHEMAS & TASKEEMAT (Cognitive Frameworks):
-   - For confusing or multi-step information that easily gets mixed up, design structured cognitive schemas, visual mental pegs, phonetic links, and comparison matrices so the student never confuses them.
-4. QUICK-RECALL ANCHOR TABLE:
+4. MEMORY SCHEMAS AND COGNITIVE FRAMEWORKS:
+   - For confusing or multi-step information, design structured cognitive schemas, visual mental pegs, phonetic links, and comparison matrices.
+5. QUICK-RECALL ANCHOR TABLE:
    - A high-yield table linking complex clinical facts to instant memory triggers.
-5. NO RAW HTML: Strictly use standard Markdown formatting. Do NOT use <mark>, <span>, or any HTML tags.
+6. NO WEIRD SYMBOLS: Clean Markdown text and tables only. No emojis, no ==delimiters==, no arrows.
 `;
   } else if (mode === 'numbers') {
     return `
-PRIMARY OBJECTIVE: 🧠 MEDICAL LECTURE NUMBERS → EXAM-READY SYSTEM
+PRIMARY OBJECTIVE: MEDICAL LECTURE NUMBERS TO EXAM-READY SYSTEM
 Extract all vital numbers, cut-offs, lab values, doses, time windows, and statistical thresholds from the lecture and reorganize them into the most high-yield exam format.
-MANDATORY CONSTRAINT: STRICTLY DO NOT invent, hallucinate, or extrapolate numbers not present in the lecture. Every single number must be strictly grounded in the lecture.
-LANGUAGE: 100% in English (Professional Medical English).
+
+STRICT MANDATORY RULES:
+1. MINIMUM LENGTH REQUIREMENT: The total output MUST NOT BE LESS THAN 2,500 WORDS. Detail the clinical significance, pathophysiological explanation, and management protocols for every number.
+2. MANDATORY CONSTRAINT: STRICTLY DO NOT invent, hallucinate, or extrapolate numbers not present in the lecture. Every single number must be strictly grounded in the lecture.
+3. LANGUAGE: 100% in English (Professional Medical English).
+4. NO WEIRD SYMBOLS: Do not use emojis, arrows, or ==highlight== markers. Use clean tables and bold headings.
 
 STRUCTURE YOUR ENTIRE OUTPUT INTO THE FOLLOWING 5 SECTIONS:
 
-1. 🔢 CUT-OFF TABLE
-Extract all numbers representing:
-- Normal ranges
-- Diagnostic cut-offs & thresholds
-- Severity thresholds
-- Treatment & intervention thresholds
-- Staging cut-offs
-DO NOT present them as a plain list. Convert them into a structured Cut-off Decision Table:
-| Number / Range | What does it mean? (Clinical Significance) | Clinical Decision / Next Step |
+1. CUT-OFF DECISION TABLE
+Extract all numbers representing normal ranges, diagnostic cut-offs, severity thresholds, and treatment thresholds.
+Convert them into a structured Cut-off Decision Table with detailed clinical explanations:
+| Number or Range | Clinical Significance and Pathophysiology | Clinical Decision, Next Step and Management Protocol |
 | :--- | :--- | :--- |
 
-2. 🎯 NUMBER → DECISION
-Every single number that alters clinical management, diagnosis, or severity must be converted to an actionable, high-velocity decision rule:
-Format: [Number / Threshold] → [Clinical Decision]
+2. NUMBER TO DECISION RULES
+Every single number that alters clinical management, diagnosis, or severity must be converted to an actionable decision rule:
+Format: [Number or Threshold]: [Clinical Decision and Detailed Justification]
 
-3. ⚠️ COMPARE SIMILAR NUMBERS
+3. COMPARE SIMILAR NUMBERS
 Group overlapping or easily confused numbers into a single comparative matrix with discriminators and mental hooks.
 
-4. 🚨 EXAM TRAPS
+4. EXAM TRAPS
 Extract all numbers that frequently cause exam mistakes with the exact trap, confusion, and correct distinction.
 
-5. 🔥 FINAL HIGH-YIELD SHEET (NUMBERS YOU MUST KNOW)
+5. FINAL HIGH-YIELD SHEET
 Conclude with an ultra high-density, rapid-review sheet ordered from highest exam yield to lowest.
 `;
   } else if (mode === 'why') {
     return `
-PRIMARY OBJECTIVE: 🔬 "WHY CHAINS" — DEEP MECHANISTIC UNDERSTANDING & ROOT CAUSE REASONING
-Deconstruct the lecture into deep, intuitive physiological and pharmacological causal chains so the student understands the fundamental "WHY" behind every fact rather than memorizing blindly.
-LANGUAGE: 100% in English (Professional Medical English).
+PRIMARY OBJECTIVE: WHY CHAINS — DEEP MECHANISTIC UNDERSTANDING AND ROOT CAUSE REASONING
+Deconstruct the lecture into deep, intuitive physiological and pharmacological causal chains so the student understands the fundamental WHY behind every fact rather than memorizing blindly.
+
+STRICT MANDATORY RULES:
+1. MINIMUM LENGTH REQUIREMENT: The total output MUST NOT BE LESS THAN 2,500 WORDS. Go deep into multi-step cascades down to cellular, receptor, and hemodynamic levels.
+2. LANGUAGE: 100% in English (Professional Medical English).
+3. NO WEIRD SYMBOLS: Do not use emojis, arrows (-> or -->), or ==delimiters==. Use clean step numbers (Step 1, Step 2, Step 3), clear headings, and structured lists.
 
 STRUCTURE YOUR ENTIRE OUTPUT INTO THE FOLLOWING 3 MASTER PILLARS:
 
-1. 🧬 ETIOLOGY WHY-CHAINS & GROUPED MEMORIZATION
+1. ETIOLOGY WHY-CHAINS AND GROUPED MEMORIZATION
 - Group related causes together into logical families.
-- Explain step-by-step MECHANISTICALLY: HOW exactly do they produce the cellular and organ pathology? (Step 1 -> Step 2 -> Step 3 -> Tissue Damage).
-- Provide the 2 best memory hooks.
+- Explain step-by-step MECHANISTICALLY: HOW exactly do they produce the cellular and organ pathology? (Step 1 leads to Step 2 leads to Step 3 leads to Tissue Damage).
+- Provide the 2 best memory hooks for each family.
 
-2. 🩺 SYMPTOMS & SIGNS: THE STEP-BY-STEP "WHY"
+2. SYMPTOMS AND SIGNS: THE STEP-BY-STEP WHY
 - Extract every cardinal symptom and physical examination sign.
-- Explain the pathophysiological trajectory step-by-step.
+- Explain the pathophysiological trajectory step-by-step down to molecular and receptor level.
 
-3. 💊 TREATMENT RATIONALE: THE ITERATIVE "WHY"
+3. TREATMENT RATIONALE: THE ITERATIVE WHY
 - Extract each pharmacological and non-pharmacological treatment option.
-- Explain WHY this specific treatment is indicated by repeatedly answering "Why?" down to cellular level.
+- Explain WHY this specific treatment is indicated by repeatedly answering Why down to cellular level.
 `;
   }
   return '';

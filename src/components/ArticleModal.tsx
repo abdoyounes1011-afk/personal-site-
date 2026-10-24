@@ -95,11 +95,66 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
             </p>
           </div>
 
-          {/* Article Paragraphs */}
+          {/* Article Paragraphs with Rich Semantic Formatting */}
           <div className="space-y-4 font-cairo text-[#2D2A26] text-sm sm:text-base leading-relaxed sm:leading-loose">
             {article.content.map((paragraph, index) => {
-              // Highlight question-style or core takeaway lines if applicable
-              const isCallout = paragraph.startsWith('المهم إن') || paragraph.startsWith('والسؤال ده لوحده') || paragraph.startsWith('طب إيه هو');
+              const trimmed = paragraph.trim();
+
+              // Quranic verse
+              if (trimmed.startsWith('﴿') || (trimmed.includes('﴿') && trimmed.includes('﴾'))) {
+                return (
+                  <div
+                    key={index}
+                    className="my-5 p-4 sm:p-5 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-amber-950 font-serif text-base sm:text-lg text-center leading-loose shadow-2xs"
+                  >
+                    <span className="font-bold text-amber-900">{trimmed}</span>
+                  </div>
+                );
+              }
+
+              // Hadith or sacred quotation in «...»
+              if (trimmed.startsWith('«') && trimmed.endsWith('»')) {
+                return (
+                  <div
+                    key={index}
+                    className="my-4 p-3.5 sm:p-4 rounded-xl bg-[#F4EDE2] border-r-4 border-[#8C6D3F] text-[#3D3528] font-semibold text-sm sm:text-base"
+                  >
+                    <span>{trimmed}</span>
+                  </div>
+                );
+              }
+
+              // Section Sub-headings (e.g. أولًا:, 1., الخلاصة, أسباب, etc.)
+              const isSubHeading = 
+                /^(أولًا|ثانيًا|تالتًا|رابعًا|خامسًا|الخلاصة|توصيتي|أول غلطة|الغلطة|أول ميزة|1\.|2\.|3\.|4\.|5\.)/i.test(trimmed) ||
+                (trimmed.length < 50 && (trimmed.endsWith(':') || trimmed.endsWith('؟') || trimmed.startsWith('**')));
+
+              if (isSubHeading && !trimmed.includes('؟ لأنك')) {
+                const cleanHeading = trimmed.replace(/\*\*/g, '');
+                return (
+                  <h4
+                    key={index}
+                    className="text-base sm:text-lg font-bold text-[#24211D] pt-4 pb-1 border-b border-[#E8DFD1]/60 flex items-center gap-2"
+                  >
+                    <span className="w-1.5 h-4.5 rounded-full bg-[#8C6D3F]" />
+                    <span>{cleanHeading}</span>
+                  </h4>
+                );
+              }
+
+              // Bullet points
+              if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+                return (
+                  <div key={index} className="flex items-start gap-2.5 pr-2 py-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#8C6D3F] mt-2.5 shrink-0" />
+                    <span className="text-[#3A3329] font-medium leading-relaxed">{trimmed.replace(/^[•\-]\s*/, '')}</span>
+                  </div>
+                );
+              }
+
+              // Highlight key insight or callout
+              const isCallout = trimmed.startsWith('المهم إن') || trimmed.startsWith('والسؤال ده لوحده') || trimmed.startsWith('طب إيه هو') || trimmed.startsWith('القاعدة دي');
+
               return (
                 <p 
                   key={index}
@@ -109,7 +164,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
                       : "text-[#3A3329]"
                   }
                 >
-                  {paragraph}
+                  {trimmed}
                 </p>
               );
             })}

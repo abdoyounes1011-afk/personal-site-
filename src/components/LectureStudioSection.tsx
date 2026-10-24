@@ -35,6 +35,7 @@ import {
 } from '../services/geminiService';
 
 // Helper to clean up any rogue HTML tags like </mark rounded">> and format highlights cleanly
+// Helper to clean up any rogue symbols, double-equals, emojis, and arrows so output is clean
 function sanitizeMedicalMarkdown(raw: string): string {
   if (!raw) return '';
   return raw
@@ -44,8 +45,16 @@ function sanitizeMedicalMarkdown(raw: string): string {
     .replace(/rounded"[^>]*>>?/gi, '')
     .replace(/class="[^"]*"/gi, '')
     .replace(/<\/?[a-z0-9_-]+:[^>]*>/gi, '')
-    // Convert double-equals highlight ==term== to bold markdown **term**
+    .replace(/<[^>]+>/g, '')
+    // Remove decorative double-equals highlight ==term== and any raw == symbols
     .replace(/==([^=\n]+)==/g, '**$1**')
+    .replace(/==+/g, '')
+    // Remove arrows like ->, -->, =>, → and replace with clean colon
+    .replace(/\s*(?:-->|->|=>|→)\s*/g, ' : ')
+    // Remove decorative emojis from text and headings
+    .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+    // Fix multiple asterisks
+    .replace(/\*{3,}/g, '**')
     .trim();
 }
 
@@ -106,6 +115,17 @@ export const LectureStudioSection: React.FC = () => {
 
   // Start Lecture Processing
   const handleProcess = async () => {
+    let effectiveKey = customApiKey.trim();
+    if (!effectiveKey && tempKeyInput.trim()) {
+      effectiveKey = tempKeyInput.trim();
+      handleSaveCustomKey(effectiveKey);
+    }
+
+    if (!effectiveKey) {
+      setErrorMsg('يرجى إدخال مفتاح Gemini API المجاني الخاص بك في الخطوة رقم 3 أولاً للبدء.');
+      return;
+    }
+
     if (!file && !directText.trim()) {
       setErrorMsg('يرجى اختيار ملف المحاضرة (PDF أو TXT) أو لصق نص المحاضرة للبدء.');
       return;
@@ -113,8 +133,8 @@ export const LectureStudioSection: React.FC = () => {
 
     setErrorMsg(null);
     setIsProcessing(true);
-    setProgressPercent(5);
-    setProgressStatus('جاري فحص المحاضرة...');
+    setProgressPercent(10);
+    setProgressStatus('ونقوول بسم الله');
     setResultText(null);
 
     let progressInterval: any = null;
@@ -122,36 +142,36 @@ export const LectureStudioSection: React.FC = () => {
     try {
       let rawText = '';
       if (file) {
-        rawText = await extractTextFromFile(file, (percent, status) => {
-          setProgressPercent(percent);
-          setProgressStatus(status);
+        rawText = await extractTextFromFile(file, (percent) => {
+          setProgressPercent(Math.min(percent, 40));
+          setProgressStatus('ونقوول بسم الله');
         });
       } else {
         rawText = directText.trim();
         setProgressPercent(35);
-        setProgressStatus('تم تجهيز نص المحاضرة...');
+        setProgressStatus('ونقوول بسم الله');
       }
 
-      setProgressPercent(50);
-      setProgressStatus('جاري إرسال المحاضرة للنموذج الطبي وتوليد المخرجات...');
+      setProgressPercent(45);
+      setProgressStatus('ونقوول بسم الله');
 
-      // Simulated smooth progress while model streams/generates
+      // Fast, smooth progress interval that finishes in under a minute
       progressInterval = setInterval(() => {
         setProgressPercent((prev) => {
-          if (prev >= 92) {
+          if (prev >= 94) {
             if (progressInterval) clearInterval(progressInterval);
-            return 92;
+            return 94;
           }
-          return prev + 2;
+          return prev + 3;
         });
-      }, 700);
+      }, 500);
 
       const generatedResult = await processLectureWithGemini({
         apiKey: customApiKey,
         mode: selectedMode,
         lectureText: rawText,
         fileName: file?.name || 'Medical Lecture Notes',
-        onStatusUpdate: (status) => setProgressStatus(status),
+        onStatusUpdate: () => setProgressStatus('ونقوول بسم الله'),
       });
 
       if (progressInterval) clearInterval(progressInterval);
@@ -710,42 +730,102 @@ export const LectureStudioSection: React.FC = () => {
             )}
           </div>
 
-          {/* STEP 3: Medical AI Ready Status & Optional Key Settings */}
-          <div className="mb-8 p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
-              <div className="text-right">
-                <span className="font-bold text-xs sm:text-sm text-emerald-950 block">
-                  محرك الذكاء الاصطناعي الطبي متصل (Google Gemini Medical Engine)
-                </span>
-                {customApiKey ? (
-                  <span className="text-[11px] text-emerald-700 block">
-                    تم ربط مفتاح API مخصص للتشغيل المباشر على GitHub Pages
+          {/* STEP 3: User API Key Setup */}
+          <div className={`mb-8 p-5 sm:p-6 rounded-2xl border transition-all ${
+            customApiKey
+              ? 'bg-emerald-50/70 border-emerald-300'
+              : 'bg-amber-50/70 border-amber-300 shadow-2xs'
+          }`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                  customApiKey ? 'bg-emerald-200 text-emerald-800' : 'bg-amber-200 text-amber-900'
+                }`}>
+                  <Key className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-extrabold text-xs sm:text-sm text-[#24211D] block">
+                    {customApiKey ? 'مفتاح Gemini API الخاص بك (متصل وجاهز)' : '3. ضع مفتاح Gemini API الخاص بك'}
                   </span>
-                ) : (
-                  <span className="text-[11px] text-emerald-700 block">
-                    يعمل تلقائياً عبر الخادم، ومتاح إضافة مفتاح للعمل بدون خادم
+                  <span className="text-[11px] text-[#7A6E5C] block">
+                    {customApiKey 
+                      ? 'يتم استخدام مفتاحك الشخصي لمعالجة المحاضرة بسرعة وأمان' 
+                      : 'ضع مفتاحك المجاني من Google لتشغيل التحليل الطبي فوراً'}
                   </span>
-                )}
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setTempKeyInput(customApiKey);
-                  setShowKeyModal(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-white/90 hover:bg-emerald-100/60 text-emerald-900 text-xs font-bold transition-colors cursor-pointer"
+
+              {/* Direct link to get key from Google */}
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 hover:text-amber-950 underline shrink-0"
               >
-                <Key className="w-3.5 h-3.5 text-emerald-700" />
-                <span>{customApiKey ? 'تعديل المفتاح' : 'إعدادات المفتاح'}</span>
-              </button>
-              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>جاهز للمعالجة</span>
-              </span>
+                <span>احصل على مفتاح مجاني من Google</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
+
+            {customApiKey ? (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-emerald-200 text-xs">
+                <div className="flex items-center gap-2 text-emerald-900 font-mono" dir="ltr">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{customApiKey.slice(0, 8)}••••••••••••••••{customApiKey.slice(-4)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempKeyInput(customApiKey);
+                      setShowKeyModal(true);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-emerald-900 font-bold hover:bg-emerald-100/60 transition-colors cursor-pointer text-xs"
+                  >
+                    تعديل المفتاح
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleSaveCustomKey('');
+                      setTempKeyInput('');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-bold hover:bg-rose-100 transition-colors cursor-pointer text-xs"
+                  >
+                    حذف المفتاح
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="pt-3 border-t border-amber-200">
+                <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
+                  <input
+                    type="password"
+                    value={tempKeyInput}
+                    onChange={(e) => setTempKeyInput(e.target.value)}
+                    placeholder="الصق مفتاحك هنا (مثال: AIzaSy...)"
+                    dir="ltr"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-white border border-[#DACBB5] text-xs font-mono text-[#24211D] placeholder-[#A09380] focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!tempKeyInput.trim()) {
+                        setErrorMsg('يرجى لصق مفتاح API الخاص بك أولاً.');
+                        return;
+                      }
+                      handleSaveCustomKey(tempKeyInput.trim());
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-[#8C6D3F] hover:bg-[#73572E] text-white font-bold text-xs transition-colors shrink-0 cursor-pointer shadow-2xs"
+                  >
+                    حفظ المفتاح
+                  </button>
+                </div>
+                <p className="text-[11px] text-[#7A6E5C] mt-2">
+                  المفتاح يُحفظ في متصفحك محلياً فقط ولا يُرسل لأي طرف خارجي، واستخدامه مجاني بالكامل.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Error Message Alert with Direct Resolution Button */}
@@ -758,7 +838,7 @@ export const LectureStudioSection: React.FC = () => {
                   <p className="mt-0.5 leading-relaxed">{errorMsg}</p>
                 </div>
               </div>
-              {(errorMsg.includes('404') || errorMsg.includes('STATUS_404_STATIC_HOST') || !customApiKey) && (
+              {!customApiKey && (
                 <button
                   type="button"
                   onClick={() => {
@@ -778,7 +858,7 @@ export const LectureStudioSection: React.FC = () => {
           {isProcessing && (
             <div className="mb-8 p-6 rounded-2xl bg-amber-50/80 border border-amber-200">
               <div className="flex items-center justify-between text-xs font-bold text-amber-950 mb-2">
-                <span>{progressStatus || 'جاري معالجة المحاضرة...'}</span>
+                <span>{progressStatus || 'ونقوول بسم الله'}</span>
                 <span>{progressPercent}%</span>
               </div>
               {/* Animated Progress Bar */}
@@ -791,9 +871,6 @@ export const LectureStudioSection: React.FC = () => {
                   <div className="absolute inset-0 bg-white/30 animate-pulse" />
                 </div>
               </div>
-              <p className="text-[11px] text-[#8C6D3F] mt-2 text-center">
-                يتم الآن تجهيز المحاضرة بدقة متناهية وفق متطلبات المود المختار... يرجى الانتظار ثوانٍ معدودة.
-              </p>
             </div>
           )}
 
@@ -811,7 +888,7 @@ export const LectureStudioSection: React.FC = () => {
             >
               <Sparkles className="w-4 h-4 text-white" />
               <span>
-                {isProcessing ? 'جاري المعالجة والتحويل...' : 'ابدأ معالجة المحاضرة الآن'}
+                {isProcessing ? 'ونقوول بسم الله...' : 'ابدأ معالجة المحاضرة الآن'}
               </span>
             </button>
           </div>
@@ -822,10 +899,15 @@ export const LectureStudioSection: React.FC = () => {
           <div className="mt-10 rounded-3xl bg-[#FBF8F2] border border-[#E3D9C9] p-6 sm:p-9 shadow-sm" dir="ltr">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-6 border-b border-[#E8DFD1]">
               <div className="text-left">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-1.5">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Ready in English</span>
-                </span>
+                <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>تحليل طبي مكتمل</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold">
+                    <span>{resultText.trim().split(/\s+/).filter(Boolean).length.toLocaleString()} Words</span>
+                  </span>
+                </div>
                 <h3 className="text-xl sm:text-2xl font-extrabold text-[#24211D]">
                   {LECTURE_MODES.find((m) => m.id === selectedMode)?.name}
                 </h3>
@@ -976,7 +1058,7 @@ export const LectureStudioSection: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-extrabold text-base text-[#24211D]">
-                  ربط مفتاح Gemini API
+                  ربط مفتاح API للتشغيل المباشر
                 </h3>
                 <p className="text-xs text-[#7E7465]">
                   للتشغيل المباشر على GitHub Pages والاستضافات الثابتة
