@@ -6,11 +6,12 @@ ABSOLUTE CORE RULES:
 2. FORMATTING: Use clean, standard Markdown (headers, tables, lists, standard bolding).
 3. NO WEIRD SYMBOLS OR DECORATIVE CHARACTERS: Strictly DO NOT output decorative symbols like ==double equals==, arrows (-> or --> or =>), emojis, hashtags inside sentences, broken HTML tags (<mark>, <span>, <div>), or strange delimiters. To emphasize key medical terms, use standard bold text (**Keyword**).
 4. COMPLETENESS & ZERO OMISSION: Never omit, delete, condense, or skip any detail, number, dose, or clinical nuance from the input lecture.
-5. MANDATORY EXHAUSTIVE DEPTH (CRITICAL REQUIREMENT):
-   - The total generated output MUST BE AT LEAST 2,500 WORDS in length (no less than 2,500 words).
-   - Under no circumstances should you provide brief summaries, truncated outlines, or short bullet points.
-   - Expand fully and exhaustively on every physiological mechanism, clinical classification, anatomical landmark, pharmacological pathway, drug dosage and interaction, diagnostic algorithm, differential diagnosis, and board exam trap.
-   - Fill tables with rich, multi-sentence explanatory descriptions rather than single-word entries to ensure the final output easily reaches and exceeds 2,500 words.`;
+5. MODE-SPECIFIC DEPTH & CONCISENESS RULES:
+   - For Tables, Zaytouna, Memory, Numbers, and Why modes: Provide exhaustive university-level depth and thorough clinical details.
+   - CRITICAL RULE FOR WRITTEN ESSAY Q&A (ENUMERATE & LIST) MODE:
+     * When answering Enumerate, Mention, or List questions, model answers MUST be concise, high-yield items/bullet points ONLY, without lengthy narrative paragraphs, filler, or long discursive explanations. Medical exam correction guides score points strictly per listed item (e.g. causes only, symptoms only, complications only, risk factors only, drugs only).
+     * Provide at least 4 to 6 sharp, precise items per question.
+     * Follow each question with two distinct, high-yield memorization strategies (Method 1: Mnemonic / Acronym, Method 2: Visual Story / Mechanistic Hook).`;
 
 export function getModePrompt(mode: LectureMode): string {
   if (mode === 'tables') {
@@ -44,56 +45,60 @@ STRICT MANDATORY RULES:
 `;
   } else if (mode === 'qa') {
     return `
-PRIMARY OBJECTIVE: MEDICAL WRITTEN ESSAY EXAM BANK (ENUMERATE, MENTION, LIST) WITH DUAL MEMORY SYSTEMS
+PRIMARY OBJECTIVE: MEDICAL WRITTEN ESSAY EXAM BANK (ENUMERATE, MENTION, LIST) — PURE CONCISE ITEMS ONLY (NO ESSAY FLUFF / NO LENGTHY PARAGRAPHS) WITH DUAL MEMORY SYSTEMS
 
-Transform the entire input lecture into an exhaustive medical school written essay exam question bank designed specifically for classical short-essay, enumerate, and list-based university examinations.
+Transform the entire lecture into an exhaustive medical school written essay exam question bank designed specifically for classical short-essay, enumerate, and list-based university examinations where marks are awarded strictly per listed item (causes, symptoms, complications, criteria, drugs).
 
 STRICT MANDATORY RULES (ALL NON-NEGOTIABLE):
 
-1. TOTAL NUMBER OF QUESTIONS (AT LEAST 12 QUESTIONS):
+1. CONCISE ITEMS ONLY IN MODEL ANSWERS (NO PROSE / NO LONG EXPLANATIONS):
+   - Medical essay exam questions (Enumerate, List, Mention) require clear, high-yield items ONLY (e.g. causes only, symptoms only, risk factors only, complications only).
+   - STRICTLY AVOID long explanations, essay padding, narrative paragraphs, or introductory filler.
+   - Present the answer directly as clean, high-yield numbered items (at least 4 to 6 items per question).
+   - Each item should be the exact high-yield medical entity/term that earns full marks on university examiner mark sheets (e.g., "1. Gallstones (40% of cases)", "2. Chronic alcohol consumption (35% of cases)"), NOT an essay paragraph.
+
+2. TOTAL NUMBER OF QUESTIONS (AT LEAST 12 QUESTIONS):
    - You MUST generate AT LEAST 12 FULL QUESTIONS (Question 1 through Question 12+). Under no circumstances should there be fewer than 12 questions.
    - The questions must systematically cover the entire lecture from start to finish:
-     * Causes, Etiology and Causative Organisms
-     * Risk Factors and Predisposing Conditions
-     * Pathophysiological Mechanisms and Chronological Steps
-     * Cardinal Symptoms and Physical Examination Signs
-     * Diagnostic Criteria, Lab Biomarkers and Imaging Findings
-     * First-line and Second-line Pharmacological Agents and Dosages
-     * Treatment Modalities, Surgical Indications and Management Steps
-     * Potential Acute Complications and High-Risk Emergencies
+     * Causes and Etiological Agents
+     * Risk Factors and High-Risk Populations
+     * Pathophysiological Hallmarks / Sequential Steps
+     * Cardinal Symptoms
+     * Physical Examination Signs
+     * Diagnostic Criteria / Lab Biomarkers
+     * Imaging Findings / Classic Signs
+     * First-line Pharmacological Agents / Regimens
+     * Treatment Modalities and Management Steps
+     * Potential Complications / Acute Emergencies
      * Absolute and Relative Contraindications
-     * Differential Diagnoses and Critical Distinguishing Features
+     * Differential Diagnoses / Distinguishing Features
 
-2. QUESTION FORMATTING & COMMAND TYPES (ENUMERATE / MENTION / LIST ONLY):
+3. QUESTION FORMATTING & COMMAND TYPES (ENUMERATE / MENTION / LIST ONLY):
    - EVERY question MUST be formulated using one of the three classic medical essay commands:
      * "Enumerate at least 4 [or 4 to 6] ..."
      * "Mention at least 4 [or 4 to 6] ..."
      * "List at least 4 [or 4 to 6] ..."
-   - EVERY question MUST explicitly request AT LEAST 4 ITEMS (e.g. "Enumerate at least 4 causes of...", "Mention at least 4 cardinal clinical signs of...", "List at least 4 first-line therapeutic agents for...").
+   - EVERY question MUST explicitly request AT LEAST 4 ITEMS (e.g. "Enumerate at least 4 causes of...", "Mention at least 4 cardinal symptoms of...", "List at least 4 first-line drugs for...").
 
-3. RIGOROUS PER-QUESTION OUTPUT STRUCTURE:
+4. RIGOROUS PER-QUESTION OUTPUT STRUCTURE:
    For every single question from Question 1 to Question 12+, strictly format the response using this exact standardized layout:
 
    ### Question [Number]: [Command: Enumerate / Mention / List] at least 4 [Subject / Topic]
-   **Exam Relevance & Topic:** [Clear clinical classification and high-yield exam context]
+   **Exam Relevance & Topic:** [Clear clinical classification, e.g. Etiology / Clinical Features / Pharmacotherapy / Complications]
 
-   #### Complete Model Answer (At Least 4-6 Exhaustive Items):
-   Provide at least 4 to 6 numbered, university-standard items. Every item must be detailed and comprehensive:
-   1. **[Core Medical Term / Entity]**: In-depth clinical explanation, underlying pathophysiological mechanism, specific pharmacology/dose/timing where relevant, and examiner scoring keywords.
-   2. **[Core Medical Term / Entity]**: In-depth clinical explanation, underlying pathophysiological mechanism, specific pharmacology/dose/timing where relevant, and examiner scoring keywords.
-   3. **[Core Medical Term / Entity]**: In-depth clinical explanation, underlying pathophysiological mechanism, specific pharmacology/dose/timing where relevant, and examiner scoring keywords.
-   4. **[Core Medical Term / Entity]**: In-depth clinical explanation, underlying pathophysiological mechanism, specific pharmacology/dose/timing where relevant, and examiner scoring keywords.
+   #### Model Answer (High-Yield Items Only — Direct & Concise):
+   Provide at least 4 to 6 numbered, crisp, exam-ready items without narrative prose:
+   1. **[Core Medical Item 1]**: Concise, direct item specification (e.g. exact pathogen, clinical sign, cause, or drug).
+   2. **[Core Medical Item 2]**: Concise, direct item specification.
+   3. **[Core Medical Item 3]**: Concise, direct item specification.
+   4. **[Core Medical Item 4]**: Concise, direct item specification.
    (Include items 5 and 6 if present in the lecture for bonus scoring).
 
    #### Suggested Memorization Strategies (Two Distinct Retention Methods):
    - **Method 1 (Mnemonic Acronym / Letter Breakdown):**
-     Create a memorable, highly intuitive medical mnemonic or acronym phrase. Spell out each letter clearly, linking each letter directly to its corresponding medical item with clear clinical reasoning.
+     Create a memorable, highly intuitive medical mnemonic or acronym phrase. Spell out each letter clearly, linking each letter directly to its corresponding medical item above.
    - **Method 2 (Visual Story / Mechanistic Association Hook):**
-     Provide a vivid mental story, anatomical landmark journey, visual imagery peg, or pathophysiological cause-and-effect chain that makes recalling all 4+ items effortless under intense exam pressure without relying on rote memorization.
-
-4. MINIMUM WORD COUNT & EXHAUSTIVE DEPTH:
-   - The total output MUST BE AT LEAST 2,500 WORDS in length across all 12+ questions.
-   - Expand every item with thorough clinical rationale, physiological connections, and keyword bolding so the student has a complete university-level answer key.
+     Provide a vivid mental story, anatomical landmark journey, visual imagery peg, or intuitive cause-and-effect hook that makes recalling all 4+ items effortless under intense exam pressure without relying on rote memorization.
 
 5. CLEAN FORMATTING & SYMBOL PROHIBITIONS:
    - Output MUST be 100% in Professional Medical English.

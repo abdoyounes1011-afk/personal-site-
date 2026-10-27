@@ -64,19 +64,31 @@ export function setStoredApiKey(key: string): void {
   }
 }
 
-// Client-side fallback generator using @google/genai
+export function clearStoredApiKey(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('user_gemini_api_key');
+    localStorage.removeItem('gemini_api_key');
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+// Client-side streaming generator using @google/genai
 async function processLectureClientSide({
   apiKey,
   mode,
   cleanText,
   fileName,
   onStatusUpdate,
+  onStreamChunk,
 }: {
   apiKey: string;
   mode: LectureMode;
   cleanText: string;
   fileName?: string;
   onStatusUpdate?: (status: string) => void;
+  onStreamChunk?: (accumulatedText: string, latestChunk: string) => void;
 }): Promise<string> {
   onStatusUpdate?.('ونقوول بسم الله');
 
@@ -117,7 +129,7 @@ Generate the complete, exhaustive English output now using clean Markdown:
   for (const modelName of candidateModels) {
     try {
       onStatusUpdate?.('ونقوول بسم الله');
-      const response = await ai.models.generateContent({
+      const responseStream = await ai.models.generateContentStream({
         model: modelName,
         contents: fullPrompt,
         config: {
@@ -127,11 +139,23 @@ Generate the complete, exhaustive English output now using clean Markdown:
         },
       });
 
-      if (response.text && response.text.trim()) {
-        return response.text;
+      let accumulated = '';
+      let chunkCount = 0;
+
+      for await (const chunk of responseStream) {
+        const text = chunk.text;
+        if (text) {
+          accumulated += text;
+          chunkCount++;
+          onStreamChunk?.(accumulated, text);
+        }
+      }
+
+      if (accumulated.trim() && chunkCount > 0) {
+        return accumulated;
       }
     } catch (err: any) {
-      console.warn(`[AI Engine] Model error:`, err?.message || err);
+      console.warn(`[AI Engine] Streaming model error:`, err?.message || err);
       lastError = err;
       const msg = (err?.message || '').toLowerCase();
       if (msg.includes('api_key_invalid') || msg.includes('api key not valid') || msg.includes('unregistered caller')) {
@@ -158,12 +182,14 @@ export async function processLectureWithGemini({
   lectureText,
   fileName,
   onStatusUpdate,
+  onStreamChunk,
 }: {
   apiKey?: string;
   mode: LectureMode;
   lectureText: string;
   fileName?: string;
   onStatusUpdate?: (status: string) => void;
+  onStreamChunk?: (accumulatedText: string, latestChunk: string) => void;
 }): Promise<string> {
   onStatusUpdate?.('ونقوول بسم الله');
 
@@ -178,13 +204,14 @@ export async function processLectureWithGemini({
     throw new Error('يرجى إدخال مفتاح Gemini API المجاني الخاص بك للبدء.');
   }
 
-  // Process directly with low-latency client engine (under 30s) using user's key
+  // Process directly with low-latency client engine (<2s first token) with real-time streaming
   return await processLectureClientSide({
     apiKey: candidateKey,
     mode,
     cleanText,
     fileName,
     onStatusUpdate,
+    onStreamChunk,
   });
 
   onStatusUpdate?.('ونقوول بسم الله');

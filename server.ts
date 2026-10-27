@@ -191,12 +191,7 @@ async function startServer() {
       });
 
       const modePrompt = getModePrompt(mode || 'tables');
-      const systemInstruction = `You are a distinguished medical professor, board examination contributor, and master clinical educator.
-ABSOLUTE CORE RULES:
-1. LANGUAGE: The entire response MUST BE 100% IN PURE ENGLISH (Medical English). Do not write Arabic in the generated output.
-2. FORMATTING: Use pure Markdown (headers, tables, lists, bold text).
-3. NO RAW HTML TAGS: Strictly DO NOT output raw HTML tags like <mark>, <span>, <div>, or broken tags like </mark rounded">>. To emphasize key facts, use standard Markdown bolding like **CRITICAL PEARL** or wrap with double equals like ==Key Differentiating Feature==.
-4. COMPLETENESS: Never omit, delete, or skip any detail, number, dose, or clinical nuance from the input lecture.`;
+      const systemInstruction = SYSTEM_INSTRUCTION;
 
       const fullPrompt = `
 ${modePrompt}
@@ -225,7 +220,7 @@ Generate the complete, exhaustive English output now using clean Markdown:
 
       for (const modelName of candidateModels) {
         try {
-          const response = await ai.models.generateContent({
+          const responseStream = await ai.models.generateContentStream({
             model: modelName,
             contents: fullPrompt,
             config: {
@@ -235,8 +230,15 @@ Generate the complete, exhaustive English output now using clean Markdown:
             },
           });
 
-          if (response.text && response.text.trim()) {
-            outputText = response.text;
+          let accumulated = '';
+          for await (const chunk of responseStream) {
+            if (chunk.text) {
+              accumulated += chunk.text;
+            }
+          }
+
+          if (accumulated.trim()) {
+            outputText = accumulated;
             break;
           }
         } catch (err: any) {

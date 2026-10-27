@@ -32,6 +32,7 @@ import {
   LectureMode,
   getStoredApiKey,
   setStoredApiKey,
+  clearStoredApiKey,
 } from '../services/geminiService';
 
 // Helper to clean up any rogue HTML tags like </mark rounded">> and format highlights cleanly
@@ -74,10 +75,17 @@ export const LectureStudioSection: React.FC = () => {
   const [progressStatus, setProgressStatus] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Custom API key state (supports direct client fallback on GitHub Pages / static hosting)
-  const [customApiKey, setCustomApiKey] = useState<string>(() => getStoredApiKey());
+  // Custom API key state - starts empty and ready for the user to input their key
+  const [customApiKey, setCustomApiKey] = useState<string>('');
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
   const [tempKeyInput, setTempKeyInput] = useState<string>('');
+
+  // Clear previous stored key on mount so the applet is immediately ready for user input
+  useEffect(() => {
+    clearStoredApiKey();
+    setCustomApiKey('');
+    setTempKeyInput('');
+  }, []);
 
   // Output state
   const [resultText, setResultText] = useState<string | null>(null);
@@ -162,16 +170,32 @@ export const LectureStudioSection: React.FC = () => {
             if (progressInterval) clearInterval(progressInterval);
             return 94;
           }
-          return prev + 3;
+          return prev + 2;
         });
       }, 500);
 
+      let hasScrolledToResults = false;
+
       const generatedResult = await processLectureWithGemini({
-        apiKey: customApiKey,
+        apiKey: effectiveKey,
         mode: selectedMode,
         lectureText: rawText,
         fileName: file?.name || 'Medical Lecture Notes',
         onStatusUpdate: () => setProgressStatus('ونقوول بسم الله'),
+        onStreamChunk: (accumulatedText) => {
+          setResultText(accumulatedText);
+          setProgressPercent((prev) => Math.min(Math.max(prev, 65) + 1, 98));
+          
+          if (!hasScrolledToResults) {
+            hasScrolledToResults = true;
+            setTimeout(() => {
+              const el = document.getElementById('lecture-results-section');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }, 100);
+          }
+        },
       });
 
       if (progressInterval) clearInterval(progressInterval);
@@ -803,6 +827,11 @@ export const LectureStudioSection: React.FC = () => {
                     type="password"
                     value={tempKeyInput}
                     onChange={(e) => setTempKeyInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && tempKeyInput.trim()) {
+                        handleSaveCustomKey(tempKeyInput.trim());
+                      }
+                    }}
                     placeholder="الصق مفتاحك هنا (مثال: AIzaSy...)"
                     dir="ltr"
                     className="flex-1 px-4 py-2.5 rounded-xl bg-white border border-[#DACBB5] text-xs font-mono text-[#24211D] placeholder-[#A09380] focus:outline-none focus:ring-2 focus:ring-amber-500/50"
@@ -896,14 +925,21 @@ export const LectureStudioSection: React.FC = () => {
 
         {/* STEP 4: Results Display Section */}
         {resultText && (
-          <div className="mt-10 rounded-3xl bg-[#FBF8F2] border border-[#E3D9C9] p-6 sm:p-9 shadow-sm" dir="ltr">
+          <div id="lecture-results-section" className="mt-10 rounded-3xl bg-[#FBF8F2] border border-[#E3D9C9] p-6 sm:p-9 shadow-sm" dir="ltr">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-6 border-b border-[#E8DFD1]">
               <div className="text-left">
                 <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
-                    <Check className="w-3.5 h-3.5" />
-                    <span>تحليل طبي مكتمل</span>
-                  </span>
+                  {isProcessing ? (
+                    <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 text-amber-950 border border-amber-300 text-xs font-bold animate-pulse">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping inline-block" />
+                      <span>جاري البث المباشر للشرح (الكلمات تظهر فوراً)...</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>تحليل طبي مكتمل</span>
+                    </span>
+                  )}
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold">
                     <span>{resultText.trim().split(/\s+/).filter(Boolean).length.toLocaleString()} Words</span>
                   </span>
@@ -917,24 +953,31 @@ export const LectureStudioSection: React.FC = () => {
               <div className="flex items-center gap-2 flex-wrap no-print">
                 <button
                   type="button"
-                  disabled={isExportingPdf}
+                  disabled={isProcessing || isExportingPdf}
                   onClick={handleDownloadPdf}
                   className={`px-3.5 py-2 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer ${
-                    isExportingPdf
+                    isProcessing
+                      ? 'bg-amber-300 text-amber-800 cursor-not-allowed opacity-70'
+                      : isExportingPdf
                       ? 'bg-amber-400 cursor-wait'
                       : 'bg-amber-600 hover:bg-amber-700'
                   }`}
-                  title="تحميل فوري كملف PDF منسق وجاهز بدون رموز شباك مع هايلايتس وبولد"
+                  title={isProcessing ? 'سيتوفر التحميل فور انتهاء البث' : 'تحميل فوري كملف PDF منسق وجاهز بدون رموز شباك مع هايلايتس وبولد'}
                 >
                   <Download className={`w-3.5 h-3.5 text-white ${isExportingPdf ? 'animate-bounce' : ''}`} />
-                  <span>{isExportingPdf ? 'جاري تجهيز الـ PDF...' : 'Download .pdf'}</span>
+                  <span>{isProcessing ? 'جاري البث...' : isExportingPdf ? 'جاري تجهيز الـ PDF...' : 'Download .pdf'}</span>
                 </button>
 
                 <button
                   type="button"
+                  disabled={isProcessing}
                   onClick={handleDownloadDoc}
-                  className="px-3.5 py-2 rounded-xl bg-[#24211D] text-white hover:bg-[#3D3730] text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
-                  title="تحميل كملف Word منسق يدعم الجداول والهايلايت"
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer ${
+                    isProcessing
+                      ? 'bg-stone-300 text-stone-600 cursor-not-allowed opacity-70'
+                      : 'bg-[#24211D] text-white hover:bg-[#3D3730]'
+                  }`}
+                  title={isProcessing ? 'سيتوفر التحميل فور انتهاء البث' : 'تحميل كملف Word منسق يدعم الجداول والهايلايت'}
                 >
                   <Download className="w-3.5 h-3.5 text-amber-400" />
                   <span>Download .doc (Word)</span>
@@ -942,9 +985,14 @@ export const LectureStudioSection: React.FC = () => {
 
                 <button
                   type="button"
+                  disabled={isProcessing}
                   onClick={handleDownloadMd}
-                  className="px-3.5 py-2 rounded-xl bg-white border border-[#DACBB5] text-[#24211D] hover:bg-[#FAF7F2] text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                  title="تحميل كملف Markdown"
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer ${
+                    isProcessing
+                      ? 'bg-stone-100 border border-stone-200 text-stone-400 cursor-not-allowed opacity-70'
+                      : 'bg-white border border-[#DACBB5] text-[#24211D] hover:bg-[#FAF7F2]'
+                  }`}
+                  title={isProcessing ? 'سيتوفر التحميل فور انتهاء البث' : 'تحميل كملف Markdown'}
                 >
                   <Download className="w-3.5 h-3.5 text-[#8C6D3F]" />
                   <span>Download .md</span>
@@ -952,9 +1000,14 @@ export const LectureStudioSection: React.FC = () => {
 
                 <button
                   type="button"
+                  disabled={isProcessing}
                   onClick={handlePrint}
-                  className="px-3 py-2 rounded-xl bg-white border border-[#DACBB5] text-[#24211D] hover:bg-[#FAF7F2] text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                  title="طباعة أو حفظ كملف PDF عبر المتصفح"
+                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer ${
+                    isProcessing
+                      ? 'bg-stone-100 border border-stone-200 text-stone-400 cursor-not-allowed opacity-70'
+                      : 'bg-white border border-[#DACBB5] text-[#24211D] hover:bg-[#FAF7F2]'
+                  }`}
+                  title={isProcessing ? 'ستتوفر الطباعة فور انتهاء البث' : 'طباعة أو حفظ كملف PDF عبر المتصفح'}
                 >
                   <Printer className="w-3.5 h-3.5 text-[#5A4F3D]" />
                   <span>Print / PDF</span>
@@ -962,8 +1015,13 @@ export const LectureStudioSection: React.FC = () => {
 
                 <button
                   type="button"
+                  disabled={isProcessing}
                   onClick={handleCopyResult}
-                  className="px-3 py-2 rounded-xl bg-white border border-[#DACBB5] text-[#24211D] hover:bg-[#FAF7F2] text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer ${
+                    isProcessing
+                      ? 'bg-stone-100 border border-stone-200 text-stone-400 cursor-not-allowed opacity-70'
+                      : 'bg-white border border-[#DACBB5] text-[#24211D] hover:bg-[#FAF7F2]'
+                  }`}
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copied ? 'Copied!' : 'Copy'}</span>
@@ -1035,6 +1093,17 @@ export const LectureStudioSection: React.FC = () => {
               >
                 {sanitizeMedicalMarkdown(resultText)}
               </ReactMarkdown>
+
+              {/* Real-time Streaming Pulse Indicator */}
+              {isProcessing && (
+                <div className="mt-6 flex items-center gap-3 text-xs sm:text-sm font-bold text-amber-950 bg-amber-100/70 p-4 rounded-2xl border border-amber-300 shadow-2xs" dir="rtl">
+                  <span className="w-3 h-3 rounded-full bg-amber-500 animate-ping shrink-0" />
+                  <span className="flex-1">
+                    جاري تدفق المزيد من الشرح الطبي والجداول لحظياً... يمكنك البدء في القراءة والمذاكرة الآن دون أي انتظار!
+                  </span>
+                  <span className="inline-block w-2.5 h-4 bg-amber-600 animate-pulse shrink-0" />
+                </div>
+              )}
             </div>
           </div>
         )}
