@@ -129,11 +129,6 @@ export const LectureStudioSection: React.FC = () => {
       handleSaveCustomKey(effectiveKey);
     }
 
-    if (!effectiveKey) {
-      setErrorMsg('يرجى إدخال مفتاح Gemini API المجاني الخاص بك في الخطوة رقم 3 أولاً للبدء.');
-      return;
-    }
-
     if (!file && !directText.trim()) {
       setErrorMsg('يرجى اختيار ملف المحاضرة (PDF أو TXT) أو لصق نص المحاضرة للبدء.');
       return;
@@ -143,7 +138,14 @@ export const LectureStudioSection: React.FC = () => {
     setIsProcessing(true);
     setProgressPercent(10);
     setProgressStatus('ونقوول بسم الله');
-    setResultText(null);
+    setResultText('');
+
+    setTimeout(() => {
+      const el = document.getElementById('lecture-results-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 200);
 
     let progressInterval: any = null;
 
@@ -207,6 +209,9 @@ export const LectureStudioSection: React.FC = () => {
       const rawMsg = err.message || 'حدث خطأ أثناء معالجة المحاضرة.';
       const cleanMsg = rawMsg.replace(/^STATUS_404_STATIC_HOST:\s*/i, '');
       setErrorMsg(cleanMsg);
+      if (!resultText) {
+        setResultText(null);
+      }
       if (rawMsg.includes('404') || rawMsg.includes('STATUS_404_STATIC_HOST') || rawMsg.includes('API_KEY')) {
         setShowKeyModal(true);
       }
@@ -758,23 +763,28 @@ export const LectureStudioSection: React.FC = () => {
           <div className={`mb-8 p-5 sm:p-6 rounded-2xl border transition-all ${
             customApiKey
               ? 'bg-emerald-50/70 border-emerald-300'
-              : 'bg-amber-50/70 border-amber-300 shadow-2xs'
+              : 'bg-emerald-50/50 border-emerald-300/80 shadow-2xs'
           }`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-2.5">
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                  customApiKey ? 'bg-emerald-200 text-emerald-800' : 'bg-amber-200 text-amber-900'
+                  customApiKey ? 'bg-emerald-200 text-emerald-800' : 'bg-emerald-200 text-emerald-800'
                 }`}>
                   <Key className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="font-extrabold text-xs sm:text-sm text-[#24211D] block">
-                    {customApiKey ? 'مفتاح Gemini API الخاص بك (متصل وجاهز)' : '3. ضع مفتاح Gemini API الخاص بك'}
-                  </span>
-                  <span className="text-[11px] text-[#7A6E5C] block">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-xs sm:text-sm text-[#24211D] block">
+                      {customApiKey ? 'مفتاح Gemini API الخاص بك (متصل وجاهز)' : '3. محرك الذكاء الاصطناعي السحابي'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                      متصل وجاهز للجميع
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-[#7A6E5C] block mt-0.5">
                     {customApiKey 
                       ? 'يتم استخدام مفتاحك الشخصي لمعالجة المحاضرة بسرعة وأمان' 
-                      : 'ضع مفتاحك المجاني من Google لتشغيل التحليل الطبي فوراً'}
+                      : 'الخادم مهيأ وجاهز لمعالجة المحاضرات لجميع الزوار مباشرة، ويمكنك إدخال مفتاح خاص (اختياري)'}
                   </span>
                 </div>
               </div>
@@ -924,33 +934,66 @@ export const LectureStudioSection: React.FC = () => {
         </div>
 
         {/* STEP 4: Results Display Section */}
-        {resultText && (
-          <div id="lecture-results-section" className="mt-10 rounded-3xl bg-[#FBF8F2] border border-[#E3D9C9] p-6 sm:p-9 shadow-sm" dir="ltr">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-6 border-b border-[#E8DFD1]">
-              <div className="text-left">
-                <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                  {isProcessing ? (
-                    <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 text-amber-950 border border-amber-300 text-xs font-bold animate-pulse">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping inline-block" />
-                      <span>جاري البث المباشر للشرح (الكلمات تظهر فوراً)...</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>تحليل طبي مكتمل</span>
-                    </span>
-                  )}
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold">
-                    <span>{resultText.trim().split(/\s+/).filter(Boolean).length.toLocaleString()} Words</span>
-                  </span>
-                </div>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-[#24211D]">
-                  {LECTURE_MODES.find((m) => m.id === selectedMode)?.name}
-                </h3>
-              </div>
+        {(resultText !== null && (resultText.length > 0 || isProcessing)) && (() => {
+          const text = resultText || '';
+          const wordCount = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+          const meetsWordRequirement = wordCount >= 1500;
+          const wordPercent = Math.min(Math.round((wordCount / 1500) * 100), 100);
 
-              {/* Action Buttons: Download Options, Copy, Print, Reset */}
-              <div className="flex items-center gap-2 flex-wrap no-print">
+          return (
+            <div id="lecture-results-section" className="mt-10 rounded-3xl bg-[#FBF8F2] border border-[#E3D9C9] p-6 sm:p-9 shadow-sm" dir="ltr">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-6 border-b border-[#E8DFD1]">
+                <div className="text-left">
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    {isProcessing ? (
+                      <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-500/10 text-red-900 border border-red-300 text-xs font-black animate-pulse">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping inline-block" />
+                        <span>بث مباشر حي (Live Streaming)</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>تحليل طبي مكتمل</span>
+                      </span>
+                    )}
+
+                    <span className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold ${
+                      meetsWordRequirement 
+                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' 
+                        : 'bg-amber-100 text-amber-900 border border-amber-300'
+                    }`}>
+                      <span>{wordCount.toLocaleString()} / 1,500+ كلمة</span>
+                      {meetsWordRequirement && <span>✓</span>}
+                    </span>
+
+                    {meetsWordRequirement ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
+                        مستوفٍ لشرط الـ 1500 كلمة
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-[11px] font-medium border border-amber-200">
+                        جاري البث للوصول إلى 1500+ كلمة ({wordPercent}%)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Word count progress bar when streaming towards 1500 words */}
+                  {isProcessing && (
+                    <div className="w-full max-w-md h-1.5 rounded-full bg-amber-200/60 overflow-hidden mb-2">
+                      <div 
+                        className={`h-full transition-all duration-300 ${meetsWordRequirement ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-amber-600'}`}
+                        style={{ width: `${wordPercent}%` }}
+                      />
+                    </div>
+                  )}
+
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-[#24211D]">
+                    {LECTURE_MODES.find((m) => m.id === selectedMode)?.name}
+                  </h3>
+                </div>
+
+                {/* Action Buttons: Download Options, Copy, Print, Reset */}
+                <div className="flex items-center gap-2 flex-wrap no-print">
                 <button
                   type="button"
                   disabled={isProcessing || isExportingPdf}
@@ -1045,68 +1088,83 @@ export const LectureStudioSection: React.FC = () => {
               id="lecture-printable-area"
               className="prose prose-amber max-w-none text-[#2D2A26] leading-relaxed text-sm sm:text-base overflow-x-auto text-left font-sans"
             >
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  table: ({ ...props }) => (
-                    <div className="my-6 overflow-x-auto rounded-2xl border border-[#DACBB5] shadow-2xs">
-                      <table className="w-full text-left border-collapse bg-white font-sans text-sm" {...props} />
-                    </div>
-                  ),
-                  thead: ({ ...props }) => (
-                    <thead className="bg-[#EFE7D8] text-[#3D3221] border-b border-[#DACBB5] font-bold text-xs uppercase tracking-wider" {...props} />
-                  ),
-                  th: ({ ...props }) => (
-                    <th className="px-4 py-3 border border-[#DACBB5] font-extrabold text-[#24211D]" {...props} />
-                  ),
-                  td: ({ ...props }) => (
-                    <td className="px-4 py-2.5 border border-[#EADBCE] text-xs sm:text-sm leading-normal text-[#2D2A26]" {...props} />
-                  ),
-                  tr: ({ ...props }) => (
-                    <tr className="even:bg-[#FAF7F2] hover:bg-amber-50/50 transition-colors" {...props} />
-                  ),
-                  h1: ({ ...props }) => (
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-[#24211D] mt-8 mb-4 border-b border-[#E3D9C9] pb-2" {...props} />
-                  ),
-                  h2: ({ ...props }) => (
-                    <h2 className="text-xl sm:text-2xl font-bold text-amber-900 mt-6 mb-3" {...props} />
-                  ),
-                  h3: ({ ...props }) => (
-                    <h3 className="text-lg font-bold text-[#24211D] mt-5 mb-2" {...props} />
-                  ),
-                  h4: ({ ...props }) => (
-                    <h4 className="text-base font-bold text-[#3D3428] mt-4 mb-2" {...props} />
-                  ),
-                  h5: ({ ...props }) => (
-                    <h5 className="text-sm font-bold text-[#5A4F3D] mt-3 mb-1.5" {...props} />
-                  ),
-                  ul: ({ ...props }) => (
-                    <ul className="list-disc list-inside space-y-1.5 my-3 pl-2" {...props} />
-                  ),
-                  ol: ({ ...props }) => (
-                    <ol className="list-decimal list-inside space-y-1.5 my-3 pl-2" {...props} />
-                  ),
-                  strong: ({ ...props }) => (
-                    <strong className="font-extrabold text-amber-950 bg-amber-200/80 px-1.5 py-0.5 rounded shadow-2xs mx-0.5 border border-amber-300/40 inline-block my-0.5" {...props} />
-                  ),
-                }}
-              >
-                {sanitizeMedicalMarkdown(resultText)}
-              </ReactMarkdown>
-
-              {/* Real-time Streaming Pulse Indicator */}
-              {isProcessing && (
-                <div className="mt-6 flex items-center gap-3 text-xs sm:text-sm font-bold text-amber-950 bg-amber-100/70 p-4 rounded-2xl border border-amber-300 shadow-2xs" dir="rtl">
-                  <span className="w-3 h-3 rounded-full bg-amber-500 animate-ping shrink-0" />
-                  <span className="flex-1">
-                    جاري تدفق المزيد من الشرح الطبي والجداول لحظياً... يمكنك البدء في القراءة والمذاكرة الآن دون أي انتظار!
-                  </span>
-                  <span className="inline-block w-2.5 h-4 bg-amber-600 animate-pulse shrink-0" />
+              {!resultText && isProcessing ? (
+                <div className="py-12 flex flex-col items-center justify-center text-center gap-3" dir="rtl">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 animate-spin">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <p className="font-bold text-base text-[#24211D]">
+                    جاري الاتصال وبدء البث المباشر للشرح الطبي...
+                  </p>
+                  <p className="text-xs text-[#7A6E5C] max-w-md">
+                    يتم الآن معالجة المحاضرة وبث الشرح الطبي الموسع (أكثر من 1500 كلمة). ستبدأ الكلمات بالظهور على الشاشة فوراً دون أي انتظار!
+                  </p>
                 </div>
-              )}
+              ) : (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                    components={{
+                      table: ({ ...props }) => (
+                        <div className="my-6 overflow-x-auto rounded-2xl border border-[#DACBB5] shadow-2xs">
+                          <table className="w-full text-left border-collapse bg-white font-sans text-sm" {...props} />
+                        </div>
+                      ),
+                      thead: ({ ...props }) => (
+                        <thead className="bg-[#EFE7D8] text-[#3D3221] border-b border-[#DACBB5] font-bold text-xs uppercase tracking-wider" {...props} />
+                      ),
+                      th: ({ ...props }) => (
+                        <th className="px-4 py-3 border border-[#DACBB5] font-extrabold text-[#24211D]" {...props} />
+                      ),
+                      td: ({ ...props }) => (
+                        <td className="px-4 py-2.5 border border-[#EADBCE] text-xs sm:text-sm leading-normal text-[#2D2A26]" {...props} />
+                      ),
+                      tr: ({ ...props }) => (
+                        <tr className="even:bg-[#FAF7F2] hover:bg-amber-50/50 transition-colors" {...props} />
+                      ),
+                      h1: ({ ...props }) => (
+                        <h1 className="text-2xl sm:text-3xl font-extrabold text-[#24211D] mt-8 mb-4 border-b border-[#E3D9C9] pb-2" {...props} />
+                      ),
+                      h2: ({ ...props }) => (
+                        <h2 className="text-xl sm:text-2xl font-bold text-amber-900 mt-6 mb-3" {...props} />
+                      ),
+                      h3: ({ ...props }) => (
+                        <h3 className="text-lg font-bold text-[#24211D] mt-5 mb-2" {...props} />
+                      ),
+                      h4: ({ ...props }) => (
+                        <h4 className="text-base font-bold text-[#3D3428] mt-4 mb-2" {...props} />
+                      ),
+                      h5: ({ ...props }) => (
+                        <h5 className="text-sm font-bold text-[#5A4F3D] mt-3 mb-1.5" {...props} />
+                      ),
+                      ul: ({ ...props }) => (
+                        <ul className="list-disc list-inside space-y-1.5 my-3 pl-2" {...props} />
+                      ),
+                      ol: ({ ...props }) => (
+                        <ol className="list-decimal list-inside space-y-1.5 my-3 pl-2" {...props} />
+                      ),
+                      strong: ({ ...props }) => (
+                        <strong className="font-extrabold text-amber-950 bg-amber-200/80 px-1.5 py-0.5 rounded shadow-2xs mx-0.5 border border-amber-300/40 inline-block my-0.5" {...props} />
+                      ),
+                    }}
+                  >
+                    {sanitizeMedicalMarkdown(resultText || '')}
+                  </ReactMarkdown>
+                )}
+
+                {/* Real-time Streaming Pulse Indicator */}
+                {isProcessing && resultText && (
+                  <div className="mt-6 flex items-center gap-3 text-xs sm:text-sm font-bold text-amber-950 bg-amber-100/70 p-4 rounded-2xl border border-amber-300 shadow-2xs" dir="rtl">
+                    <span className="w-3 h-3 rounded-full bg-amber-500 animate-ping shrink-0" />
+                    <span className="flex-1">
+                      جاري تدفق المزيد من الشرح الطبي والجداول لحظياً... يمكنك البدء في القراءة والمذاكرة الآن دون أي انتظار! ({wordCount.toLocaleString()} كلمة حتى الآن)
+                    </span>
+                    <span className="inline-block w-2.5 h-4 bg-amber-600 animate-pulse shrink-0" />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Sleek API Key Modal for GitHub Pages & Custom Environments */}

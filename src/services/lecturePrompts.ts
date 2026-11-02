@@ -6,12 +6,14 @@ ABSOLUTE CORE RULES:
 2. FORMATTING: Use clean, standard Markdown (headers, tables, lists, standard bolding).
 3. NO WEIRD SYMBOLS OR DECORATIVE CHARACTERS: Strictly DO NOT output decorative symbols like ==double equals==, arrows (-> or --> or =>), emojis, hashtags inside sentences, broken HTML tags (<mark>, <span>, <div>), or strange delimiters. To emphasize key medical terms, use standard bold text (**Keyword**).
 4. COMPLETENESS & ZERO OMISSION: Never omit, delete, condense, or skip any detail, number, dose, or clinical nuance from the input lecture.
-5. MODE-SPECIFIC DEPTH & CONCISENESS RULES:
-   - For Tables, Zaytouna, Memory, Numbers, and Why modes: Provide exhaustive university-level depth and thorough clinical details.
+5. ABSOLUTE MINIMUM LENGTH REQUIREMENT (AT LEAST 1,500 WORDS): The total generated response MUST NOT BE LESS THAN 1,500 WORDS under any circumstances. Ensure exhaustive, university-grade depth, thorough clinical reasoning, and rich explanations so that the final output easily meets or exceeds 1,500 words.
+6. MODE-SPECIFIC DEPTH & CONCISENESS RULES:
+   - For Tables, Zaytouna, Memory, Numbers, and Why modes: Provide exhaustive university-level depth and thorough clinical details (minimum 1,500 to 2,500+ words).
    - CRITICAL RULE FOR WRITTEN ESSAY Q&A (ENUMERATE & LIST) MODE:
      * When answering Enumerate, Mention, or List questions, model answers MUST be concise, high-yield items/bullet points ONLY, without lengthy narrative paragraphs, filler, or long discursive explanations. Medical exam correction guides score points strictly per listed item (e.g. causes only, symptoms only, complications only, risk factors only, drugs only).
      * Provide at least 4 to 6 sharp, precise items per question.
-     * Follow each question with two distinct, high-yield memorization strategies (Method 1: Mnemonic / Acronym, Method 2: Visual Story / Mechanistic Hook).`;
+     * Follow each question with two distinct, high-yield memorization strategies (Method 1: Mnemonic / Acronym, Method 2: Visual Story / Mechanistic Hook).
+     * With at least 12 complete questions, detailed mnemonics, and visual stories, ensure the total dossier reaches at least 1,500 words.`;
 
 export function getModePrompt(mode: LectureMode): string {
   if (mode === 'tables') {
@@ -103,6 +105,10 @@ STRICT MANDATORY RULES (ALL NON-NEGOTIABLE):
 5. CLEAN FORMATTING & SYMBOL PROHIBITIONS:
    - Output MUST be 100% in Professional Medical English.
    - DO NOT USE emojis, arrows (-> or -->), decorative dividers, or double equals (==). Use standard clean Markdown headings, bold keywords, and numbered lists.
+
+6. MINIMUM 1,500 WORDS COMPREHENSIVE DOSSIER:
+   - The overall generated question bank MUST NOT BE LESS THAN 1,500 WORDS.
+   - Ensure that while the items in the model answer remain crisp and concise, each of the 12+ questions has full clinical relevance, complete 4 to 6 items, in-depth mnemonic acronym breakdowns, and vivid multi-sentence visual story associations so the total dossier easily meets or exceeds 1,500 words.
 `;
   } else if (mode === 'zaytouna') {
     return `

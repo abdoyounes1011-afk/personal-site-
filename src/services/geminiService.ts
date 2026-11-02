@@ -1,5 +1,4 @@
-import { GoogleGenAI, ThinkingLevel } from '@google/genai';
-import { getModePrompt, SYSTEM_INSTRUCTION, LectureMode } from './lecturePrompts';
+import { LectureMode } from './lecturePrompts';
 
 export type { LectureMode };
 
@@ -74,108 +73,10 @@ export function clearStoredApiKey(): void {
   }
 }
 
-// Client-side streaming generator using @google/genai
-async function processLectureClientSide({
-  apiKey,
-  mode,
-  cleanText,
-  fileName,
-  onStatusUpdate,
-  onStreamChunk,
-}: {
-  apiKey: string;
-  mode: LectureMode;
-  cleanText: string;
-  fileName?: string;
-  onStatusUpdate?: (status: string) => void;
-  onStreamChunk?: (accumulatedText: string, latestChunk: string) => void;
-}): Promise<string> {
-  onStatusUpdate?.('ونقوول بسم الله');
-
-  const ai = new GoogleGenAI({
-    apiKey: apiKey.trim(),
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  });
-
-  const modePrompt = getModePrompt(mode);
-  const fullPrompt = `
-${modePrompt}
-
-==================================================
-DOCUMENT TITLE: ${fileName || 'Medical Lecture'}
-COMPLETE LECTURE CONTENT:
-${cleanText}
-==================================================
-
-CORE REQUIREMENTS:
-- Provide exhaustive, university-level medical details, comprehensive tables, in-depth pathophysiological mechanisms, and complete clinical breakdowns without any omissions or shortcuts.
-- STRICTLY DO NOT output emojis, arrows (-> or -->), or decorative symbols (such as ==). Use pure clean text, bold keywords, and neat tables.
-
-Generate the complete, exhaustive English output now using clean Markdown:
-`;
-
-  const candidateModels = [
-    'gemini-3.8-flash',
-    'gemini-flash-latest',
-    'gemini-3.1-flash-lite',
-  ];
-
-  let lastError: any = null;
-
-  for (const modelName of candidateModels) {
-    try {
-      onStatusUpdate?.('ونقوول بسم الله');
-      const responseStream = await ai.models.generateContentStream({
-        model: modelName,
-        contents: fullPrompt,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          temperature: 0.2,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        },
-      });
-
-      let accumulated = '';
-      let chunkCount = 0;
-
-      for await (const chunk of responseStream) {
-        const text = chunk.text;
-        if (text) {
-          accumulated += text;
-          chunkCount++;
-          onStreamChunk?.(accumulated, text);
-        }
-      }
-
-      if (accumulated.trim() && chunkCount > 0) {
-        return accumulated;
-      }
-    } catch (err: any) {
-      console.warn(`[AI Engine] Streaming model error:`, err?.message || err);
-      lastError = err;
-      const msg = (err?.message || '').toLowerCase();
-      if (msg.includes('api_key_invalid') || msg.includes('api key not valid') || msg.includes('unregistered caller')) {
-        break;
-      }
-      continue;
-    }
-  }
-
-  const errText = (lastError?.message || '').toLowerCase();
-  if (errText.includes('api_key_invalid') || errText.includes('api key not valid') || errText.includes('unregistered caller')) {
-    throw new Error('مفتاح Gemini API غير صالح أو لم يتم تفعيله. يُرجى التحقق من المفتاح في الإعدادات.');
-  }
-  if (errText.includes('429') || errText.includes('quota') || errText.includes('resource has been exhausted')) {
-    throw new Error('تم بلوغ حد الاستخدام المجاني المؤقت، يُرجى الانتظار دقيقة واحدة ثم إعادة المحاولة.');
-  }
-
-  throw new Error(lastError?.message || 'تعذرت معالجة المحاضرة عبر نموذج الذكاء الاصطناعي.');
-}
-
+/**
+ * Process a lecture by calling the server-side AI endpoint.
+ * This ensures API keys stay secure on the server and work for everyone who opens the website.
+ */
 export async function processLectureWithGemini({
   apiKey,
   mode,
@@ -200,88 +101,106 @@ export async function processLectureWithGemini({
 
   const candidateKey = apiKey?.trim() || getStoredApiKey();
 
-  if (!candidateKey) {
-    throw new Error('يرجى إدخال مفتاح Gemini API المجاني الخاص بك للبدء.');
-  }
+  const controller = new AbortController();
+  // 180-second timeout to allow comprehensive 1,500+ words generation without premature aborts
+  const timeoutTimer = setTimeout(() => controller.abort(), 180000);
 
-  // Process directly with low-latency client engine (<2s first token) with real-time streaming
-  return await processLectureClientSide({
-    apiKey: candidateKey,
-    mode,
-    cleanText,
-    fileName,
-    onStatusUpdate,
-    onStreamChunk,
-  });
-
-  onStatusUpdate?.('ونقوول بسم الله');
-
-  // Step 1: Try server-side endpoint with 45s timeout constraint
-  let shouldFallbackToClient = false;
   try {
-    const controller = new AbortController();
-    const timeoutTimer = setTimeout(() => controller.abort(), 45000);
-
-    const response = await fetch('/api/process-lecture', {
+    const response = await fetch('/api/process-lecture?stream=true', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'text/event-stream, application/json',
       },
       signal: controller.signal,
       body: JSON.stringify({
         mode,
+        stream: true,
         lectureText: cleanText,
         fileName: fileName || 'Medical Lecture Notes',
         apiKey: candidateKey || undefined,
       }),
     });
+
     clearTimeout(timeoutTimer);
 
-    if (response.status === 404 || response.status === 405 || response.status === 502) {
-      console.warn('[GeminiService] Server endpoint returned ' + response.status + '. Falling back to client-side...');
-      shouldFallbackToClient = true;
-    } else {
-      const data = await response.json().catch(() => null);
+    const contentType = response.headers.get('content-type') || '';
 
-      if (!response.ok) {
-        // If server failed with 500 or 503 and we have a custom key, try client fallback
-        if (candidateKey && (response.status === 500 || response.status === 503)) {
-          shouldFallbackToClient = true;
-        } else {
-          const errorMsg = data?.error || `حدث خطأ في الخادم (رمز الحالة: ${response.status})`;
-          throw new Error(errorMsg);
+    // If server responded with SSE stream
+    if (contentType.includes('text/event-stream') && response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let accumulatedText = '';
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data:')) continue;
+
+          const dataStr = trimmed.slice(5).trim();
+          if (dataStr === '[DONE]') {
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(dataStr);
+            if (parsed.type === 'chunk' && parsed.text) {
+              accumulatedText += parsed.text;
+              onStreamChunk?.(accumulatedText, parsed.text);
+            } else if (parsed.type === 'error' || parsed.error) {
+              const err = parsed.error || 'حدث خطأ أثناء معالجة المحاضرة.';
+              throw new Error(err);
+            } else if (parsed.type === 'done' && parsed.fullText) {
+              accumulatedText = parsed.fullText;
+              onStreamChunk?.(accumulatedText, '');
+            }
+          } catch (e: any) {
+            if (e?.message && !e.message.includes('Unexpected token') && !e.message.includes('JSON')) {
+              throw e;
+            }
+          }
         }
-      } else {
-        if (!data?.result) {
-          throw new Error('لم يتم استلام نتائج من نموذج الذكاء الاصطناعي.');
-        }
-        return data.result;
+      }
+
+      if (accumulatedText.trim().length > 0) {
+        return accumulatedText;
       }
     }
+
+    // Fallback if not an SSE stream or if response is standard JSON
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const rawError = data?.error || `حدث خطأ في الخادم (رمز الحالة: ${response.status})`;
+      if (rawError.includes('429') || rawError.includes('quota') || rawError.includes('RESOURCE_EXHAUSTED')) {
+        throw new Error('تم بلوغ حد الاستخدام المؤقت للنموذج، يُرجى الانتظار دقيقة واحدة ثم إعادة المحاولة.');
+      }
+      throw new Error(rawError);
+    }
+
+    if (!data?.result || !data.result.trim()) {
+      throw new Error('لم يتم استلام نتائج من نموذج الذكاء الاصطناعي.');
+    }
+
+    const fullResult = data.result;
+    if (onStreamChunk) {
+      onStreamChunk(fullResult, fullResult);
+    }
+
+    return fullResult;
   } catch (err: any) {
-    if (shouldFallbackToClient || err?.message?.includes('404') || err?.message?.includes('Failed to fetch') || err?.name === 'TypeError') {
-      shouldFallbackToClient = true;
-    } else {
-      throw err;
+    clearTimeout(timeoutTimer);
+    if (err?.name === 'AbortError') {
+      throw new Error('استغرقت معالجة المحاضرة وقتاً أطول من المتوقع، يرجى المحاولة مرة أخرى.');
     }
+    throw err;
   }
-
-  // Step 2: Fall back to client-side processing for GitHub Pages / static hosting
-  if (shouldFallbackToClient) {
-    if (!candidateKey) {
-      throw new Error(
-        'STATUS_404_STATIC_HOST: لم يتم العثور على خادم معالجة نشط (الموقع يعمل على استضافة ثابتة مثل GitHub Pages). يرجى الضغط أدناه وإدخال مفتاح Gemini API المجاني الخاص بك لتعمل المعالجة مباشرة وبدون خادم.'
-      );
-    }
-
-    return await processLectureClientSide({
-      apiKey: candidateKey,
-      mode,
-      cleanText,
-      fileName,
-      onStatusUpdate,
-    });
-  }
-
-  throw new Error('تعذرت معالجة المحاضرة.');
 }

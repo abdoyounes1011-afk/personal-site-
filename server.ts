@@ -163,22 +163,45 @@ async function startServer() {
     });
   });
 
-  // API Route: Process Lecture with Gemini AI
-  app.post(['/api/process-lecture', '/api/process-lecture/'], async (req, res) => {
+  // API Route: Process Lecture with Gemini AI (Server-Side with real-time streaming SSE & non-streaming support)
+  app.post(['/api/process-lecture', '/api/process-lecture/', '/api/process-lecture-stream'], async (req, res) => {
+    const isStreamRequested = 
+      req.query.stream === 'true' || 
+      req.body.stream === true || 
+      req.path.includes('stream') ||
+      Boolean(req.headers.accept && req.headers.accept.includes('text/event-stream'));
+
+    let isClientClosed = false;
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        isClientClosed = true;
+      }
+    });
+
     try {
       const { mode, lectureText, fileName } = req.body;
 
       if (!lectureText || typeof lectureText !== 'string' || !lectureText.trim()) {
+        if (isStreamRequested) {
+          res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+          res.write(`data: ${JSON.stringify({ error: 'محتوى المحاضرة مطلوب للبدء.' })}\n\n`);
+          return res.end();
+        }
         return res.status(400).json({ error: 'محتوى المحاضرة مطلوب للبدء.' });
       }
 
       const userProvidedKey = req.body.apiKey ? String(req.body.apiKey).trim() : '';
-      const apiKey = userProvidedKey;
+      const serverKey = process.env.GEMINI_API_KEY ? String(process.env.GEMINI_API_KEY).trim() : '';
+      const apiKey = userProvidedKey || serverKey;
 
       if (!apiKey) {
-        return res.status(400).json({
-          error: 'يرجى إدخال مفتاح Gemini API الخاص بك للمتابعة. يمكنك الحصول على مفتاح مجاني من Google AI Studio.',
-        });
+        const keyErr = 'لم يتم العثور على مفتاح Gemini API في الخادم. يرجى ضبط GEMINI_API_KEY في إعدادات الخادم أو إدخال مفتاح في الواجهة.';
+        if (isStreamRequested) {
+          res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+          res.write(`data: ${JSON.stringify({ error: keyErr })}\n\n`);
+          return res.end();
+        }
+        return res.status(500).json({ error: keyErr });
       }
 
       const ai = new GoogleGenAI({
@@ -204,45 +227,156 @@ ${lectureText}
 
 CORE REQUIREMENTS:
 - Provide exhaustive, university-level medical details, comprehensive tables, in-depth pathophysiological mechanisms, and complete clinical breakdowns without any omissions or shortcuts.
+- ABSOLUTE WORD COUNT MANDATE: The total output MUST NOT BE LESS THAN 1,500 WORDS (aim for 1,500 - 3,000 words). Thoroughly expand every clinical detail, mechanism, table cell, or memory anchor so the output is rich, complete, and exhaustive.
 - STRICTLY DO NOT output emojis, arrows (-> or -->), or decorative symbols (such as ==). Use pure clean text, bold keywords, and neat tables.
 
 Generate the complete, exhaustive English output now using clean Markdown:
 `;
 
-      const candidateModels = [
-        'gemini-3.8-flash',
-        'gemini-flash-latest',
-        'gemini-3.1-flash-lite',
-      ];
+      const candidateModels = userProvidedKey
+        ? ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest']
+        : ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3.5-flash'];
 
+      if (isStreamRequested) {
+        res.socket?.setNoDelay(true);
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+        if (typeof res.flushHeaders === 'function') {
+          res.flushHeaders();
+        }
+
+        // Send start event
+        res.write(`data: ${JSON.stringify({ type: 'start', message: 'connected' })}\n\n`);
+
+        let streamedText = '';
+        let streamSuccess = false;
+        let lastStreamError: any = null;
+
+        for (const modelName of candidateModels) {
+          if (isClientClosed) break;
+          try {
+            const config: any = {
+              systemInstruction,
+            };
+            if (modelName === 'gemini-3.8-flash' || modelName === 'gemini-flash-latest') {
+              config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
+            }
+
+            const streamResponse = await ai.models.generateContentStream({
+              model: modelName,
+              contents: fullPrompt,
+              config,
+            });
+
+            for await (const chunk of streamResponse) {
+              if (isClientClosed) break;
+              const text = chunk.text;
+              if (text) {
+                streamedText += text;
+                res.write(`data: ${JSON.stringify({ type: 'chunk', text })}\n\n`);
+                if (typeof (res as any).flush === 'function') {
+                  (res as any).flush();
+                }
+              }
+            }
+
+            if (streamedText.trim().length > 0) {
+              streamSuccess = true;
+              break;
+            }
+          } catch (err: any) {
+            console.warn(`[AI Studio Server] Streaming Model ${modelName} error:`, err?.message || err);
+            lastStreamError = err;
+            const msg = (err?.message || '').toLowerCase();
+            if (msg.includes('api_key_invalid') || msg.includes('api key not valid')) {
+              break;
+            }
+            continue;
+          }
+        }
+
+        // If streaming did not succeed, fallback to generateContent and push in chunks
+        if (!streamSuccess && !isClientClosed) {
+          console.warn('[AI Studio Server] Streaming failed, falling back to generateContent with chunked SSE delivery...');
+          for (const modelName of candidateModels) {
+            if (isClientClosed) break;
+            try {
+              const config: any = {
+                systemInstruction,
+              };
+              if (modelName === 'gemini-3.8-flash' || modelName === 'gemini-flash-latest') {
+                config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
+              }
+
+              const response = await ai.models.generateContent({
+                model: modelName,
+                contents: fullPrompt,
+                config,
+              });
+
+              if (response.text && response.text.trim()) {
+                const fullText = response.text;
+                const pieces = fullText.match(/.{1,120}/gs) || [fullText];
+                for (const piece of pieces) {
+                  if (isClientClosed) break;
+                  streamedText += piece;
+                  res.write(`data: ${JSON.stringify({ type: 'chunk', text: piece })}\n\n`);
+                  if (typeof (res as any).flush === 'function') {
+                    (res as any).flush();
+                  }
+                  await new Promise((r) => setTimeout(r, 15));
+                }
+                streamSuccess = true;
+                break;
+              }
+            } catch (err: any) {
+              lastStreamError = err;
+              continue;
+            }
+          }
+        }
+
+        if (streamSuccess && !isClientClosed) {
+          res.write(`data: ${JSON.stringify({ type: 'done', fullText: streamedText })}\n\n`);
+          res.write('data: [DONE]\n\n');
+          return res.end();
+        }
+
+        if (!isClientClosed) {
+          const rawErrMsg = lastStreamError?.message || 'فشلت معالجة المحاضرة بواسطة نموذج الذكاء الاصطناعي.';
+          res.write(`data: ${JSON.stringify({ type: 'error', error: rawErrMsg })}\n\n`);
+          return res.end();
+        }
+        return;
+      }
+
+      // Non-streaming fallback path (standard JSON POST)
       let lastError: any = null;
       let outputText = '';
 
       for (const modelName of candidateModels) {
         try {
-          const responseStream = await ai.models.generateContentStream({
-            model: modelName,
-            contents: fullPrompt,
-            config: {
-              systemInstruction,
-              temperature: 0.2,
-              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-            },
-          });
-
-          let accumulated = '';
-          for await (const chunk of responseStream) {
-            if (chunk.text) {
-              accumulated += chunk.text;
-            }
+          const config: any = {
+            systemInstruction,
+          };
+          if (modelName === 'gemini-3.8-flash' || modelName === 'gemini-flash-latest') {
+            config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
           }
 
-          if (accumulated.trim()) {
-            outputText = accumulated;
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: fullPrompt,
+            config,
+          });
+
+          if (response.text && response.text.trim()) {
+            outputText = response.text;
             break;
           }
         } catch (err: any) {
-          console.warn(`[AI Studio] Model ${modelName} error:`, err?.message || err);
+          console.warn(`[AI Studio Server] Model ${modelName} error:`, err?.message || err);
           lastError = err;
           const msg = (err?.message || '').toLowerCase();
           if (msg.includes('api_key_invalid') || msg.includes('api key not valid')) {
@@ -256,10 +390,24 @@ Generate the complete, exhaustive English output now using clean Markdown:
         return res.json({ result: outputText });
       }
 
-      const errMsg = lastError?.message || 'فشلت معالجة المحاضرة بواسطة نموذج الذكاء الاصطناعي.';
+      const rawErrMsg = lastError?.message || '';
+      let errMsg = 'فشلت معالجة المحاضرة بواسطة نموذج الذكاء الاصطناعي.';
+      if (rawErrMsg.includes('PROXY_GENERATION_DISABLED') || rawErrMsg.includes('streamGenerateContent')) {
+        errMsg = 'خطأ في إعدادات الاتصال بنموذج الذكاء الاصطناعي. تم تحديث طريقة الاتصال لتكون متوافقة تماماً.';
+      } else if (rawErrMsg.includes('429') || rawErrMsg.includes('RESOURCE_EXHAUSTED')) {
+        errMsg = 'تم بلوغ حد الاستخدام المؤقت للنموذج، يُرجى الانتظار قليلاً ثم إعادة المحاولة.';
+      } else if (rawErrMsg) {
+        errMsg = rawErrMsg;
+      }
+
       return res.status(500).json({ error: errMsg });
     } catch (error: any) {
-      console.error('[AI Studio] Server error in /api/process-lecture:', error);
+      console.error('[AI Studio Server] Error in /api/process-lecture:', error);
+      if (isStreamRequested && !res.headersSent) {
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.write(`data: ${JSON.stringify({ type: 'error', error: error?.message || 'حدث خطأ داخلي في الخادم.' })}\n\n`);
+        return res.end();
+      }
       return res.status(500).json({ error: error?.message || 'حدث خطأ داخلي في الخادم.' });
     }
   });
