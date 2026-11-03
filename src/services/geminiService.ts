@@ -73,6 +73,70 @@ export function clearStoredApiKey(): void {
   }
 }
 
+async function processLectureDirectWithGenAI({
+  apiKey,
+  mode,
+  cleanText,
+  fileName,
+  onStatusUpdate,
+  onStreamChunk,
+}: {
+  apiKey: string;
+  mode: LectureMode;
+  cleanText: string;
+  fileName?: string;
+  onStatusUpdate?: (status: string) => void;
+  onStreamChunk?: (accumulatedText: string, latestChunk: string) => void;
+}): Promise<string> {
+  onStatusUpdate?.('ونقوول بسم الله (المعالجة المباشرة)');
+  const { GoogleGenAI } = await import('@google/genai');
+  const { getModePrompt, SYSTEM_INSTRUCTION } = await import('./lecturePrompts.ts');
+
+  const ai = new GoogleGenAI({ apiKey });
+  const modePrompt = getModePrompt(mode);
+  const fullPrompt = `${modePrompt}
+
+=== [SOURCE MEDICAL LECTURE CONTENT] ===
+Lecture Title: ${fileName || 'Medical Lecture'}
+Content:
+${cleanText}
+
+=== [EXECUTE IMMEDIATE HIGH-YIELD ANALYSIS (1,500+ WORDS MINIMUM) NOW] ===`;
+
+  const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+  let lastErr: any = null;
+
+  for (const model of candidateModels) {
+    try {
+      const streamResp = await ai.models.generateContentStream({
+        model,
+        contents: fullPrompt,
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+        },
+      });
+
+      let accumulatedText = '';
+      for await (const chunk of streamResp) {
+        const text = chunk.text;
+        if (text) {
+          accumulatedText += text;
+          onStreamChunk?.(accumulatedText, text);
+        }
+      }
+
+      if (accumulatedText.trim().length > 0) {
+        return accumulatedText;
+      }
+    } catch (err: any) {
+      lastErr = err;
+      continue;
+    }
+  }
+
+  throw lastErr || new Error('فشلت معالجة المحاضرة بواسطة مفتاح الذكاء الاصطناعي.');
+}
+
 /**
  * Process a lecture by calling the server-side AI endpoint.
  * This ensures API keys stay secure on the server and work for everyone who opens the website.
@@ -106,23 +170,56 @@ export async function processLectureWithGemini({
   const timeoutTimer = setTimeout(() => controller.abort(), 180000);
 
   try {
-    const response = await fetch('/api/process-lecture?stream=true', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream, application/json',
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        mode,
-        stream: true,
-        lectureText: cleanText,
-        fileName: fileName || 'Medical Lecture Notes',
-        apiKey: candidateKey || undefined,
-      }),
-    });
+    let response: Response | null = null;
+    let networkError: any = null;
+
+    try {
+      response = await fetch('/api/process-lecture?stream=true', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream, application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          mode,
+          stream: true,
+          lectureText: cleanText,
+          fileName: fileName || 'Medical Lecture Notes',
+          apiKey: candidateKey || undefined,
+        }),
+      });
+    } catch (err: any) {
+      networkError = err;
+    }
 
     clearTimeout(timeoutTimer);
+
+    // If network error occurred or server returned 404 / 502 / 503
+    if (!response || response.status === 404 || response.status === 502 || response.status === 503) {
+      if (candidateKey) {
+        return await processLectureDirectWithGenAI({
+          apiKey: candidateKey,
+          mode,
+          cleanText,
+          fileName,
+          onStatusUpdate,
+          onStreamChunk,
+        });
+      }
+
+      if (!response) {
+        throw new Error(
+          networkError?.name === 'AbortError'
+            ? 'استغرقت معالجة المحاضرة وقتاً أطول من المتوقع، يرجى المحاولة مرة أخرى.'
+            : 'STATUS_404_STATIC_HOST: تعذر الوصول إلى خادم المعالجة. يرجى إدخال مفتاح API للتشغيل المباشر.'
+        );
+      }
+
+      throw new Error(
+        'STATUS_404_STATIC_HOST: لم يتم العثور على مسار المعالجة (404 Not Found). يرجى إدخال مفتاح Google AI Studio المجاني للمتابعة مباشرة.'
+      );
+    }
 
     const contentType = response.headers.get('content-type') || '';
 

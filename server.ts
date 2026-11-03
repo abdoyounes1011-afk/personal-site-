@@ -117,8 +117,9 @@ async function startServer() {
   const app = express();
   const portArgIdx = process.argv.indexOf('--port') !== -1 ? process.argv.indexOf('--port') : process.argv.indexOf('-p');
   const portFromArg = portArgIdx !== -1 && process.argv[portArgIdx + 1] ? parseInt(process.argv[portArgIdx + 1], 10) : null;
-  // Dev server must bind to port 3000 in AI Studio, never 8080
-  const PORT = portFromArg || (process.env.NODE_ENV === 'production' && process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
+  // When AI Studio launches dev server, it passes --port 3000 explicitly via CLI args.
+  // When running on Cloud Run or in production, PORT is passed via process.env.PORT (8080).
+  const PORT = portFromArg || (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
 
   const hostArgIdx = process.argv.indexOf('--host') !== -1 ? process.argv.indexOf('--host') : process.argv.indexOf('-h');
   const HOST = hostArgIdx !== -1 && process.argv[hostArgIdx + 1] ? process.argv[hostArgIdx + 1] : '0.0.0.0';
@@ -137,6 +138,8 @@ async function startServer() {
 
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+  // Serve public directory assets (pdf worker, icons, robots, sitemap)
+  app.use(express.static(path.resolve(__dirname, 'public')));
 
   // Sitemap.xml for search engines & indexing crawlers
   app.get(['/sitemap.xml', '/sitemap'], (_req, res) => {
@@ -170,7 +173,7 @@ async function startServer() {
   });
 
   // API Route: Process Lecture with Gemini AI (Server-Side with real-time streaming SSE & non-streaming support)
-  app.post(['/api/process-lecture', '/api/process-lecture/', '/api/process-lecture-stream'], async (req, res) => {
+  app.post(['/api/process-lecture', '/api/process-lecture/', '/api/process-lecture/*', '/api/process-lecture-stream'], async (req, res) => {
     const isStreamRequested = 
       req.query.stream === 'true' || 
       req.body.stream === true || 
@@ -423,6 +426,11 @@ Generate the complete, exhaustive English output now using clean Markdown:
   // Health check endpoint
   app.get(['/api/health', '/api/health/'], (_req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
+  });
+
+  // Catch-all for undefined /api routes (prevent HTML 404)
+  app.all('/api/*', (req, res) => {
+    res.status(404).json({ error: `المسار ${req.path} غير معرف على الخادم.` });
   });
 
   let vite: ViteDevServer | null = null;

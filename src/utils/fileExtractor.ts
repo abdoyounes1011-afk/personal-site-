@@ -1,7 +1,8 @@
 import * as pdfjsLib from 'pdfjs-dist';
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Use unpkg worker matching installed pdfjs-dist version
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+// Use local worker bundled by Vite (no external CDN dependency)
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl || '/pdf.worker.min.mjs';
 
 export async function extractTextFromFile(
   file: File,
