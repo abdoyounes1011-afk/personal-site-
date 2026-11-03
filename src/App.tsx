@@ -11,7 +11,7 @@ import { CourseSection } from './components/CourseSection';
 import { Footer } from './components/Footer';
 import { LegalPage, LegalTab } from './components/LegalPage';
 import { CookieBanner } from './components/CookieBanner';
-import { Article } from './types';
+import type { Article } from './types.ts';
 import { ARTICLES } from './data/articles';
 
 function parseArticleFromUrl(): Article | null {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ExternalLink, Copy, Check, Sparkles, Brain, ArrowUpRight, CheckCircle2, Clock, HeartHandshake } from 'lucide-react';
 import { GEM_TOOLS, TOOLS_SUMMARY, TOOLS_FINAL_NOTE } from '../data/gems';
-import { GemTool, HoverTheme } from '../types';
+import type { GemTool, HoverTheme } from '../types.ts';
 
 export const ToolsSection: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);

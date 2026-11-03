@@ -37,8 +37,8 @@ import {
 
 // Helper to clean up any rogue HTML tags like </mark rounded">> and format highlights cleanly
 // Helper to clean up any rogue symbols, double-equals, emojis, and arrows so output is clean
-function sanitizeMedicalMarkdown(raw: string): string {
-  if (!raw) return '';
+function sanitizeMedicalMarkdown(raw: unknown): string {
+  if (typeof raw !== 'string' || !raw) return '';
   return raw
     // Strip broken or malformed mark tags and leftovers
     .replace(/<\/?mark[^>]*>>?/gi, '')
@@ -206,13 +206,21 @@ export const LectureStudioSection: React.FC = () => {
       setResultText(generatedResult);
     } catch (err: any) {
       if (progressInterval) clearInterval(progressInterval);
-      const rawMsg = err.message || 'حدث خطأ أثناء معالجة المحاضرة.';
-      const cleanMsg = rawMsg.replace(/^STATUS_404_STATIC_HOST:\s*/i, '');
+      const rawMsg = typeof err === 'string'
+        ? err
+        : typeof err?.message === 'string'
+        ? err.message
+        : typeof err?.error === 'string'
+        ? err.error
+        : (err?.error?.message || (err ? JSON.stringify(err) : 'حدث خطأ أثناء معالجة المحاضرة.'));
+
+      const rawMsgStr = String(rawMsg || '');
+      const cleanMsg = rawMsgStr.replace(/^STATUS_404_STATIC_HOST:\s*/i, '');
       setErrorMsg(cleanMsg);
       if (!resultText) {
         setResultText(null);
       }
-      if (rawMsg.includes('404') || rawMsg.includes('STATUS_404_STATIC_HOST') || rawMsg.includes('API_KEY')) {
+      if (rawMsgStr.includes('404') || rawMsgStr.includes('STATUS_404_STATIC_HOST') || rawMsgStr.includes('API_KEY')) {
         setShowKeyModal(true);
       }
     } finally {

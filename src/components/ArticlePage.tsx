@@ -13,7 +13,7 @@ import {
   Compass,
   BookmarkCheck
 } from 'lucide-react';
-import { Article } from '../types';
+import type { Article } from '../types.ts';
 import { ARTICLES } from '../data/articles';
 
 interface ArticlePageProps {
@@ -165,8 +165,9 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
     : ARTICLES.filter((a) => a.id !== article.id).slice(0, 3);
 
   // Formatter for rich paragraphs
-  const renderParagraph = (text: string, index: number) => {
-    const trimmed = text.trim();
+  const renderParagraph = (text: unknown, index: number) => {
+    const trimmed = typeof text === 'string' ? text.trim() : String(text || '').trim();
+    if (!trimmed) return null;
 
     // Quranic verses or Dua
     const isQuran = trimmed.startsWith('قال تعالى') || 

@@ -156,15 +156,18 @@ export async function processLectureWithGemini({
               accumulatedText += parsed.text;
               onStreamChunk?.(accumulatedText, parsed.text);
             } else if (parsed.type === 'error' || parsed.error) {
-              const err = parsed.error || 'حدث خطأ أثناء معالجة المحاضرة.';
-              throw new Error(err);
+              const err = typeof parsed.error === 'string'
+                ? parsed.error
+                : (parsed.error?.message || (parsed.error ? JSON.stringify(parsed.error) : 'حدث خطأ أثناء معالجة المحاضرة.'));
+              throw new Error(String(err));
             } else if (parsed.type === 'done' && parsed.fullText) {
-              accumulatedText = parsed.fullText;
+              accumulatedText = typeof parsed.fullText === 'string' ? parsed.fullText : String(parsed.fullText || '');
               onStreamChunk?.(accumulatedText, '');
             }
           } catch (e: any) {
-            if (e?.message && !e.message.includes('Unexpected token') && !e.message.includes('JSON')) {
-              throw e;
+            const errStr = typeof e?.message === 'string' ? e.message : String(e || '');
+            if (errStr && !errStr.includes('Unexpected token') && !errStr.includes('JSON')) {
+              throw e instanceof Error ? e : new Error(errStr);
             }
           }
         }
@@ -179,11 +182,15 @@ export async function processLectureWithGemini({
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const rawError = data?.error || `حدث خطأ في الخادم (رمز الحالة: ${response.status})`;
-      if (rawError.includes('429') || rawError.includes('quota') || rawError.includes('RESOURCE_EXHAUSTED')) {
+      const rawError = typeof data?.error === 'string'
+        ? data.error
+        : (data?.error?.message || (data ? JSON.stringify(data.error || data) : `حدث خطأ في الخادم (رمز الحالة: ${response.status})`));
+      
+      const errorStr = String(rawError || '');
+      if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
         throw new Error('تم بلوغ حد الاستخدام المؤقت للنموذج، يُرجى الانتظار دقيقة واحدة ثم إعادة المحاولة.');
       }
-      throw new Error(rawError);
+      throw new Error(errorStr);
     }
 
     if (!data?.result || !data.result.trim()) {

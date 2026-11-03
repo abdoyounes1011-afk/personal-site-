@@ -1,5 +1,5 @@
 import express from 'express';
-import { createServer as createViteServer, ViteDevServer } from 'vite';
+import { createServer as createViteServer, type ViteDevServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -11,7 +11,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-import { getModePrompt, SYSTEM_INSTRUCTION, LectureMode } from './src/services/lecturePrompts.ts';
+import { getModePrompt, SYSTEM_INSTRUCTION, type LectureMode } from './src/services/lecturePrompts.ts';
 import { ARTICLES } from './src/data/articles.ts';
 
 function escapeHtml(str: string): string {
@@ -115,8 +115,14 @@ ${JSON.stringify(schemaJson, null, 2)}
 
 async function startServer() {
   const app = express();
-  // Dev server binds to PORT or default 3000
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const portArgIdx = process.argv.indexOf('--port') !== -1 ? process.argv.indexOf('--port') : process.argv.indexOf('-p');
+  const portFromArg = portArgIdx !== -1 && process.argv[portArgIdx + 1] ? parseInt(process.argv[portArgIdx + 1], 10) : null;
+  // Dev server must bind to port 3000 in AI Studio, never 8080
+  const PORT = portFromArg || (process.env.NODE_ENV === 'production' && process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
+
+  const hostArgIdx = process.argv.indexOf('--host') !== -1 ? process.argv.indexOf('--host') : process.argv.indexOf('-h');
+  const HOST = hostArgIdx !== -1 && process.argv[hostArgIdx + 1] ? process.argv[hostArgIdx + 1] : '0.0.0.0';
+
   const isDev = process.env.NODE_ENV !== 'production';
 
   app.use((req, res, next) => {
@@ -390,7 +396,9 @@ Generate the complete, exhaustive English output now using clean Markdown:
         return res.json({ result: outputText });
       }
 
-      const rawErrMsg = lastError?.message || '';
+      const rawErrMsg = typeof lastError?.message === 'string'
+        ? lastError.message
+        : (typeof lastError?.error === 'string' ? lastError.error : String(lastError?.message || lastError || ''));
       let errMsg = 'فشلت معالجة المحاضرة بواسطة نموذج الذكاء الاصطناعي.';
       if (rawErrMsg.includes('PROXY_GENERATION_DISABLED') || rawErrMsg.includes('streamGenerateContent')) {
         errMsg = 'خطأ في إعدادات الاتصال بنموذج الذكاء الاصطناعي. تم تحديث طريقة الاتصال لتكون متوافقة تماماً.';
@@ -420,7 +428,10 @@ Generate the complete, exhaustive English output now using clean Markdown:
   let vite: ViteDevServer | null = null;
   if (isDev) {
     vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: 'spa',
     });
   }
@@ -543,8 +554,8 @@ function injectLegalPageMeta(template: string, tab: string, host: string, protoc
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[AI Studio] Server listening on http://0.0.0.0:${PORT} (${isDev ? 'development' : 'production'})`);
+  app.listen(PORT, HOST, () => {
+    console.log(`[AI Studio] Server listening on http://${HOST}:${PORT} (${isDev ? 'development' : 'production'})`);
   });
 }
 

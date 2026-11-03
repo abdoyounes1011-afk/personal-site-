@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { BookOpen, Clock, Sparkles, ChevronLeft, Search, X, Layers } from 'lucide-react';
 import { ARTICLES } from '../data/articles';
-import { Article } from '../types';
+import type { Article } from '../types.ts';
 
 interface ArticlesSectionProps {
   onSelectArticle: (article: Article) => void;
@@ -29,8 +29,11 @@ export const ArticlesSection: React.FC<ArticlesSectionProps> = ({ onSelectArticl
   // Filtered articles based on category and search query
   const filteredArticles = useMemo(() => {
     return ARTICLES.filter((article) => {
+      if (!article) return false;
+
       // Category filter
       let matchesCategory = true;
+      const articleId = String(article.id || '');
       if (selectedCategory === 'techniques') {
         matchesCategory = [
           'spaced-repetition',
@@ -38,7 +41,7 @@ export const ArticlesSection: React.FC<ArticlesSectionProps> = ({ onSelectArticl
           'al-moragaa',
           'common-study-mistakes',
           'interleaving-study-method',
-        ].includes(article.id);
+        ].includes(articleId);
       } else if (selectedCategory === 'ai') {
         matchesCategory = [
           'ask-dad-gem',
@@ -47,14 +50,14 @@ export const ArticlesSection: React.FC<ArticlesSectionProps> = ({ onSelectArticl
           'fun-studying-with-ai',
           'notebook-gemini-guide',
           'three-ai-study-recommendations',
-        ].includes(article.id);
+        ].includes(articleId);
       } else if (selectedCategory === 'productivity') {
         matchesCategory = [
           'perfectionism',
           'procrastination',
           'when-to-start-studying',
           'study-with-fun',
-        ].includes(article.id);
+        ].includes(articleId);
       } else if (selectedCategory === 'mental') {
         matchesCategory = [
           'burnout-root-causes',
@@ -62,17 +65,23 @@ export const ArticlesSection: React.FC<ArticlesSectionProps> = ({ onSelectArticl
           'handling-exam-emotions',
           'dua-for-studying',
           'deep-focus-system',
-        ].includes(article.id);
+        ].includes(articleId);
       }
 
       // Search filter
-      const query = searchQuery.trim().toLowerCase();
+      const query = typeof searchQuery === 'string' ? searchQuery.trim().toLowerCase() : '';
+      if (!query) return matchesCategory;
+
+      const arabicTitle = String(article.arabicTitle || '').toLowerCase();
+      const title = String(article.title || '').toLowerCase();
+      const summary = String(article.summary || '').toLowerCase();
+      const category = String(article.category || '').toLowerCase();
+
       const matchesSearch =
-        !query ||
-        article.arabicTitle.toLowerCase().includes(query) ||
-        article.title.toLowerCase().includes(query) ||
-        article.summary.toLowerCase().includes(query) ||
-        article.category.toLowerCase().includes(query);
+        arabicTitle.includes(query) ||
+        title.includes(query) ||
+        summary.includes(query) ||
+        category.includes(query);
 
       return matchesCategory && matchesSearch;
     });

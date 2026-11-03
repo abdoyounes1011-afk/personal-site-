@@ -1,4 +1,4 @@
-import { GemTool } from '../types';
+import type { GemTool } from '../types.ts';
 
 export const GEM_TOOLS: GemTool[] = [
   {

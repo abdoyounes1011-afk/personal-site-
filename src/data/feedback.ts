@@ -1,4 +1,4 @@
-import { CourseFeedback } from '../types';
+import type { CourseFeedback } from '../types.ts';
 
 export const COURSE_FEEDBACK: CourseFeedback[] = [
   {

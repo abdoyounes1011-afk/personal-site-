@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, BookOpen, Clock, Tag, ArrowRight, Share2, Check } from 'lucide-react';
-import { Article } from '../types';
+import type { Article } from '../types.ts';
 
 interface ArticleModalProps {
   article: Article;
@@ -95,10 +95,10 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
             </p>
           </div>
 
-          {/* Article Paragraphs with Rich Semantic Formatting */}
           <div className="space-y-4 font-cairo text-[#2D2A26] text-sm sm:text-base leading-relaxed sm:leading-loose">
-            {article.content.map((paragraph, index) => {
-              const trimmed = paragraph.trim();
+            {Array.isArray(article?.content) && article.content.map((paragraph, index) => {
+              const trimmed = typeof paragraph === 'string' ? paragraph.trim() : String(paragraph || '').trim();
+              if (!trimmed) return null;
 
               // Quranic verse
               if (trimmed.startsWith('﴿') || (trimmed.includes('﴿') && trimmed.includes('﴾'))) {
