@@ -73,6 +73,67 @@ export function clearStoredApiKey(): void {
   }
 }
 
+export function formatGeminiErrorMessage(raw: unknown): string {
+  if (!raw) return 'فشلت معالجة المحاضرة بواسطة نموذج الذكاء الاصطناعي.';
+  let text = typeof raw === 'string' ? raw : '';
+
+  if (typeof raw === 'object') {
+    const anyObj = raw as any;
+    text = anyObj?.message || anyObj?.error?.message || anyObj?.error || '';
+    if (!text) {
+      try {
+        text = JSON.stringify(raw);
+      } catch {
+        text = String(raw);
+      }
+    }
+  }
+
+  // Handle nested stringified JSON error payloads (e.g. {"error":{"message":"{\n \"error\": ..."}}})
+  let attempts = 0;
+  while (attempts < 4 && typeof text === 'string' && (text.trim().startsWith('{') || text.trim().startsWith('['))) {
+    attempts++;
+    try {
+      const parsed = JSON.parse(text.trim());
+      if (typeof parsed === 'string') {
+        text = parsed;
+      } else if (parsed && typeof parsed === 'object') {
+        text = parsed.error?.message || parsed.message || parsed.error || JSON.stringify(parsed);
+      }
+    } catch {
+      break;
+    }
+  }
+
+  const lower = String(text || '').toLowerCase();
+  if (
+    lower.includes('503') ||
+    lower.includes('high demand') ||
+    lower.includes('unavailable') ||
+    lower.includes('spikes in demand') ||
+    lower.includes('overloaded')
+  ) {
+    return 'نموذج الذكاء الاصطناعي يواجه ضغطاً مؤقتاً في هذه اللحظة (High Demand - 503). يُرجى الضغط على زر «إعادة المحاولة الآن» أدناه للمتابعة فوراً دون إعادة رفع الملف.';
+  }
+
+  if (
+    lower.includes('429') ||
+    lower.includes('quota') ||
+    lower.includes('resource_exhausted') ||
+    lower.includes('rate limit')
+  ) {
+    return 'تم بلوغ حد الاستخدام المؤقت للنموذج (Rate Limit - 429). يُرجى الانتظار دقيقة واحدة ثم الضغط على «إعادة المحاولة الآن».';
+  }
+
+  if (lower.includes('api_key_invalid') || lower.includes('api key not valid') || lower.includes('invalid api key')) {
+    return 'مفتاح الـ API غير صالح أو منتهي الصلاحية. يُرجى التحقق من المفتاح في الإعدادات.';
+  }
+
+  return String(text || 'حدث خطأ أثناء معالجة المحاضرة.');
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function processLectureDirectWithGenAI({
   apiKey,
   mode,
@@ -103,38 +164,51 @@ ${cleanText}
 
 === [EXECUTE IMMEDIATE HIGH-YIELD ANALYSIS (1,500+ WORDS MINIMUM) NOW] ===`;
 
-  const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+  const candidateModels = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'];
   let lastErr: any = null;
 
-  for (const model of candidateModels) {
-    try {
-      const streamResp = await ai.models.generateContentStream({
-        model,
-        contents: fullPrompt,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-        },
-      });
+  for (let pass = 0; pass < 2; pass++) {
+    if (pass > 0) {
+      await sleep(2000);
+    }
 
-      let accumulatedText = '';
-      for await (const chunk of streamResp) {
-        const text = chunk.text;
-        if (text) {
-          accumulatedText += text;
-          onStreamChunk?.(accumulatedText, text);
+    for (const model of candidateModels) {
+      try {
+        const streamResp = await ai.models.generateContentStream({
+          model,
+          contents: fullPrompt,
+          config: {
+            systemInstruction: SYSTEM_INSTRUCTION,
+          },
+        });
+
+        let accumulatedText = '';
+        for await (const chunk of streamResp) {
+          const text = chunk.text;
+          if (text) {
+            accumulatedText += text;
+            onStreamChunk?.(accumulatedText, text);
+          }
         }
-      }
 
-      if (accumulatedText.trim().length > 0) {
-        return accumulatedText;
+        if (accumulatedText.trim().length > 0) {
+          return accumulatedText;
+        }
+      } catch (err: any) {
+        lastErr = err;
+        const msg = String(err?.message || '').toLowerCase();
+        if (msg.includes('api_key_invalid') || msg.includes('api key not valid')) {
+          break;
+        }
+        if (msg.includes('503') || msg.includes('high demand') || msg.includes('429')) {
+          await sleep(1200);
+        }
+        continue;
       }
-    } catch (err: any) {
-      lastErr = err;
-      continue;
     }
   }
 
-  throw lastErr || new Error('فشلت معالجة المحاضرة بواسطة مفتاح الذكاء الاصطناعي.');
+  throw new Error(formatGeminiErrorMessage(lastErr));
 }
 
 /**
@@ -195,8 +269,8 @@ export async function processLectureWithGemini({
 
     clearTimeout(timeoutTimer);
 
-    // If network error occurred or server returned 404 / 502 / 503
-    if (!response || response.status === 404 || response.status === 502 || response.status === 503) {
+    // If fetch failed or server returned 404
+    if (!response || response.status === 404) {
       if (candidateKey) {
         return await processLectureDirectWithGenAI({
           apiKey: candidateKey,
@@ -212,7 +286,7 @@ export async function processLectureWithGemini({
         throw new Error(
           networkError?.name === 'AbortError'
             ? 'استغرقت معالجة المحاضرة وقتاً أطول من المتوقع، يرجى المحاولة مرة أخرى.'
-            : 'STATUS_404_STATIC_HOST: تعذر الوصول إلى خادم المعالجة. يرجى إدخال مفتاح API للتشغيل المباشر.'
+            : 'تعذر الاتصال بخادم المعالجة. يرجى التحقق من اتصال الإنترنت والضغط على «إعادة المحاولة الآن».'
         );
       }
 
@@ -253,10 +327,8 @@ export async function processLectureWithGemini({
               accumulatedText += parsed.text;
               onStreamChunk?.(accumulatedText, parsed.text);
             } else if (parsed.type === 'error' || parsed.error) {
-              const err = typeof parsed.error === 'string'
-                ? parsed.error
-                : (parsed.error?.message || (parsed.error ? JSON.stringify(parsed.error) : 'حدث خطأ أثناء معالجة المحاضرة.'));
-              throw new Error(String(err));
+              const formatted = formatGeminiErrorMessage(parsed.error);
+              throw new Error(formatted);
             } else if (parsed.type === 'done' && parsed.fullText) {
               accumulatedText = typeof parsed.fullText === 'string' ? parsed.fullText : String(parsed.fullText || '');
               onStreamChunk?.(accumulatedText, '');
@@ -279,15 +351,8 @@ export async function processLectureWithGemini({
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const rawError = typeof data?.error === 'string'
-        ? data.error
-        : (data?.error?.message || (data ? JSON.stringify(data.error || data) : `حدث خطأ في الخادم (رمز الحالة: ${response.status})`));
-      
-      const errorStr = String(rawError || '');
-      if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
-        throw new Error('تم بلوغ حد الاستخدام المؤقت للنموذج، يُرجى الانتظار دقيقة واحدة ثم إعادة المحاولة.');
-      }
-      throw new Error(errorStr);
+      const rawError = data?.error || data || `خطأ في الخادم (رمز الحالة: ${response.status})`;
+      throw new Error(formatGeminiErrorMessage(rawError));
     }
 
     if (!data?.result || !data.result.trim()) {

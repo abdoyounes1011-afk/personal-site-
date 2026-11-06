@@ -33,6 +33,7 @@ import {
   getStoredApiKey,
   setStoredApiKey,
   clearStoredApiKey,
+  formatGeminiErrorMessage,
 } from '../services/geminiService';
 
 // Helper to clean up any rogue HTML tags like </mark rounded">> and format highlights cleanly
@@ -206,21 +207,13 @@ export const LectureStudioSection: React.FC = () => {
       setResultText(generatedResult);
     } catch (err: any) {
       if (progressInterval) clearInterval(progressInterval);
-      const rawMsg = typeof err === 'string'
-        ? err
-        : typeof err?.message === 'string'
-        ? err.message
-        : typeof err?.error === 'string'
-        ? err.error
-        : (err?.error?.message || (err ? JSON.stringify(err) : 'حدث خطأ أثناء معالجة المحاضرة.'));
-
-      const rawMsgStr = String(rawMsg || '');
-      const cleanMsg = rawMsgStr.replace(/^STATUS_404_STATIC_HOST:\s*/i, '');
+      const cleanMsg = formatGeminiErrorMessage(err);
       setErrorMsg(cleanMsg);
       if (!resultText) {
         setResultText(null);
       }
-      if (rawMsgStr.includes('404') || rawMsgStr.includes('STATUS_404_STATIC_HOST') || rawMsgStr.includes('API_KEY')) {
+      const rawMsgStr = String(err?.message || err || '');
+      if (rawMsgStr.includes('STATUS_404_STATIC_HOST') || rawMsgStr.includes('api_key_invalid')) {
         setShowKeyModal(true);
       }
     } finally {
@@ -877,27 +870,38 @@ export const LectureStudioSection: React.FC = () => {
 
           {/* Error Message Alert with Direct Resolution Button */}
           {errorMsg && (
-            <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
               <div className="flex items-start gap-2.5">
                 <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold">تنبيه:</p>
-                  <p className="mt-0.5 leading-relaxed">{errorMsg}</p>
+                  <p className="font-bold text-rose-900">تنبيه أثناء المعالجة:</p>
+                  <p className="mt-0.5 leading-relaxed text-rose-800">{errorMsg}</p>
                 </div>
               </div>
-              {!customApiKey && (
+              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                 <button
                   type="button"
-                  onClick={() => {
-                    setTempKeyInput(customApiKey);
-                    setShowKeyModal(true);
-                  }}
-                  className="shrink-0 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  onClick={handleProcess}
+                  disabled={isProcessing}
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
                 >
-                  <Key className="w-3.5 h-3.5" />
-                  <span>إدخال مفتاح API للمتابعة فوراً</span>
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>إعادة المحاولة الآن</span>
                 </button>
-              )}
+                {!customApiKey && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempKeyInput(customApiKey);
+                      setShowKeyModal(true);
+                    }}
+                    className="px-3 py-2 rounded-xl bg-white hover:bg-stone-50 border border-rose-200 text-stone-700 font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                  >
+                    <Key className="w-3.5 h-3.5 text-stone-500" />
+                    <span>إدخال مفتاح API</span>
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
